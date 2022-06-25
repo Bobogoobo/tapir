@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+	<title>TAPIR - Torn API Reader</title>
+	<meta charset="utf-8" />
+	<script src="tapir.js"></script>
+	<link href="tapir.css" rel="stylesheet" />
+</head>
+<body>
+	<h2>Torn API Reader (TAPIR) by Bobogoobo [<a href="https://www.torn.com/profiles.php?XID=2618206">2618206</a>]</h2>
+	<p>Designed primarily to parse and analyze your activity log for interesting statistics, but also capable of any other API stat tracking.</p>
+	<p>
+		For any suggestions, questions, or issues, please mail me in game (not chat) or message me on Discord (I'm verified in the Torn server). No item is too insignificant.
+		<br />
+		If you do something cool using this, feel free to send me a link!
+	</p>
+	<p>Your API key will not be stored except in temporary browser memory only while the program is running. It will not be transmitted except to the Torn API.</p>
+	<p>Disclaimer: this tool is in beta. Customized log formats are subject to change. You accept responsibility for any damages incurred while using this tool.</p>
+	<p>Last updated: 2022-06-20 - WIP.</p>
+	<p>Don't play Torn? <a href="https://www.torn.com/2618206">Check it out here</a>.</p>
+	<hr />
+	<div id="input">
+		<form>
+			<h3>Required fields</h3>
+			<label>
+				Enter your API key:
+				<input id="api-key" type="password" minlength="16" maxlength="16" pattern="\w{16}" required="required" autocomplete="current-password" spellcheck="false" />
+				(Manage your API keys in Torn <a href="https://www.torn.com/preferences.php#tab=api">here</a>.)
+			</label>
+			<br />
+			<label>
+				<input id="store-logs" type="checkbox" />
+				Store logs to download when done (<b>highly recommended for a full run</b>).
+			</label>
+			<br />
+			<label>
+				Select routines to run, comma-separated, or enter "ALL" without quotes, or leave blank for none:
+				<input id="routines" type="text" size="50" />
+			</label>
+			<br />
+			<label>
+				<input id="progress-check" type="number" min="-1" max="100" value="10" />
+				Interval for progress notifications (as a percentage of completion), or -1 for no notifications. Does not apply to stored logs.
+			</label>
+		</form>
+		<form>
+			<h3>Other settings</h3>
+			<label>
+				Choose saved log file:
+				<input id="log-file" type="file" accept=".txt,.json" />
+			</label>
+			<button class="submit" type="button" onclick="TAPIR('readFile');">Submit</button>
+			<br />
+			<label>
+				<input id="request-rate" type="number" min="0" max="1.66" step="0.05" value="1" />
+				API request(s) per second (up to Torn's limit of 100 per minute) - this is not followed precisely, so leave some margin.
+			</label>
+		</form>
+		<form>
+			<h3>Limit number of logs retrieved</h3>
+			<p>If using multiple limits, the first limit hit will stop the program. You can limit to 0 logs if you want to run a routine that doesn't use them.</p>
+			<label>By number of logs to retrieve (note 100 are retrieved per request):</label>
+			<label>
+				<input id="limit-logs" type="number" min="0" step="100" />
+				logs
+			</label>
+			<br />
+			<label>By a specific date to go back to (non-inclusive, both optional), treated as <b>Torn City Time (TCT, equal to UTC)</b>:</label>
+			<label>
+				Date:
+				<input id="limit-date" type="date" pattern="\d{4}-\d{2}-\d{2}" />
+			</label>
+			<label>
+				Time:
+				<input id="limit-time" type="time" pattern="\d{2}:\d{2}"/>
+			</label>
+			<br />
+			<label>By amount of time to go back (all optional and can be any number):</label>
+			<label>
+				<input id="limit-years" type="number" min="0" />
+				years,
+			</label>
+			<label>
+				<input id="limit-months" type="number" min="0" />
+				months,
+			</label>
+			<label>
+				<input id="limit-days" type="number" min="0" />
+				days,
+			</label>
+			<label>
+				<input id="limit-hours" type="number" min="0" />
+				hours,
+			</label>
+			<label>
+				<input id="limit-minutes" type="number" min="0" />
+				minutes,
+			</label>
+			<label>
+				<input id="limit-seconds" type="number" min="0" />
+				seconds
+			</label>
+		</form>
+		<h3>Engage</h3>
+		<button type="button" onclick="TAPIR('setup', true);">Run From Stored Data</button> (from file or a completed run)
+		<button type="button" onclick="TAPIR('analyze');">Analyze Log Metadata</button> (from file or a completed run)
+		<button class="engage" type="button" onclick="TAPIR('setup', false);">Run From Torn API</button>
+	</div>
+	<hr />
+	<div id="output">
+		<div>
+			<label for="logging">Program Logs:</label>
+			<button type="button" onclick="TAPIR('clearLog');">Clear Log</button>
+			<br />
+			<textarea id="logging" rows="30" readonly="readonly" spellcheck="false" autocomplete="off">Welcome to TAPIR!</textarea>
+		</div><div>
+			<label for="log-download">Torn Logs:</label>
+			<button type="button" onclick="TAPIR('displayLogs');">Toggle Log Spacing</button>
+			<br />
+			<textarea id="log-download" rows="30" readonly="readonly" spellcheck="false" autocomplete="off" data-spaced="false"></textarea>
+		</div>
+	</div>
+</body>
+</html>

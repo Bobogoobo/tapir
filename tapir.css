@@ -1,0 +1,49 @@
+label {
+	display: inline-block;
+	margin: 0.5em 0;
+}
+
+input[type=number] {
+	width: 6em;
+}
+
+input:invalid {
+	border-color: red;
+	border-style: dashed;
+}
+
+button {
+	padding: 1em;
+}
+
+.engage {
+	font-weight: bold;
+}
+
+button + button {
+	margin-left: 3em;
+}
+
+#output > div {
+	display: inline-block;
+	width: 45%;
+}
+
+#output > div:first-child {
+	padding-right: 4%;
+}
+
+#output > div:last-child {
+	padding-left: 4%;
+}
+
+#output textarea {
+	width: 95%;
+}
+
+#output button {
+	float: right;
+	margin-right: 4%;
+	margin-top: 0.5%;
+	padding: 0.1em 1em;
+}
