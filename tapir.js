@@ -21,7 +21,7 @@
 	*pthree (optional): third parameter to pass to the given function.
 */
 function TAPIR(func, pone, ptwo, pthree) {
-	TornAPIReader.ui[func].call(TornAPIReader, pone, ptwo, pthree);
+	window.TornAPIReader.ui[func].call(window.TornAPIReader, pone, ptwo, pthree);
 }
 
 /* The main program object, contains all logic and data. */
@@ -975,7 +975,7 @@ window.TornAPIReader = {
 			data: {},
 			init: function(ids) {
 				this.data = {
-					count: { 'total': 0, 'success': 0, 'failure': 0, 'unknown': 0 },
+					count: { 'total': 0, 'success': 0, 'failure': 0 },
 					types: {},
 					id: ids.custom.captcha,
 				};
@@ -994,8 +994,6 @@ window.TornAPIReader = {
 					} else if (log.title === 'Captcha validation failure') {
 						this.data.count.failure += 1;
 						this.data.types[type].failure += 1;
-					} else {
-						this.data.count.unknown += 1;
 					}
 				}
 			},
@@ -1007,15 +1005,92 @@ window.TornAPIReader = {
 		},
 		crimes: {
 			description: "Gets stats on crimes the player has done.",
+			require: ['torn.items'],
 			data: {},
 			init: function(ids) {
-				
+				this.data = {
+					id: ids.torn.crime,
+					count: {},
+				};
+				Object.keys(this.data.id).forEach(function(crime) {
+					var crimeData = ids.torn.crime[crime];
+					this.data.count[crime] = {
+						desc: crimeData[0],
+						category: crimeData[1],
+						subcat: crimeData[2] || null,
+						nerve: null,
+						total: 0,
+						success: 0,
+						fail: 0,
+						failMoney: 0,
+						jail: 0,
+						jailTime: 0,
+						hospital: 0,
+						hospTime: 0,
+						moneyGained: 0,
+						moneyLost: 0,
+						itemsGained: {},
+					};
+				}, this);
 			},
 			processor: function(log) {
-				//TODO
+				//todo: don't have crime success casino token gain (5735) or points gain (5730)
+				//  need to add property to count when needed
+				if (log.category === 'Crimes') {
+					var crime = log.data.crime;
+					var data = this.data.count[crime];
+					if (!data.nerve) {
+						data.nerve = log.data.nerve;
+					}
+					data.total += 1;
+					switch (log.title) {
+						case 'Crime fail':
+							data.fail += 1;
+							break;
+						case 'Crime fail jail':
+							data.jail += 1;
+							data.jailTime += log.data.jail_time_increased;
+							break;
+						case 'Crime fail hospital':
+							data.hospital += 1;
+							data.hospTime += log.data.hospital_time_increased;
+							break;
+						case 'Crime fail money loss':
+							data.failMoney += 1;
+							data.moneyLost += log.data.money_lost;
+							break;
+						case 'Crime success money gain':
+							data.success += 1;
+							data.moneyGained += log.data.money_gained;
+							break;
+						case 'Crime success item gain':
+							data.success += 1;
+							if (data.itemsGained[log.data.item_gained]) {
+								data.itemsGained[log.data.item_gained].count += 1;
+							} else {
+								data.itemsGained[log.data.item_gained] = {
+									desc: null,
+									count: 1,
+									value: null,
+									totalValue: null,
+								}
+							}
+							break;
+						case 'Crime success points gain':
+							break;
+						case 'Crime success casino token gain':
+							break;
+					}
+				}
 			},
 			finish: function(output) {
-				
+				//todo; lookup items; briefly say which ones are 0; can do drop rates like with wheels
+
+				Object.keys(this.data.count).forEach(function(crime) {
+					if (this.data.count[crime].total) {
+						output(this.data.count[crime]);
+					}
+				}, this);
 			},
 		},
 		footroulette: {
