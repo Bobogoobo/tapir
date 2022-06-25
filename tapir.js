@@ -588,7 +588,7 @@ window.TornAPIReader = {
 		this.config.useStored = useStored;
 		if (!this.config.useStored) {
 			if (limit && Object.keys(limit).length) {
-				if (limit.count >= 0) {// checking so 0 is registered
+				if (limit.count >= 0 && limit.count !== null) {
 					this.config.limitCount = limit.count;
 				}
 				if (limit.interval) {
@@ -708,9 +708,11 @@ window.TornAPIReader = {
 		*logs (optional): an object to read logs from. Omit parameter to use the log data stored in the program object.
 	*/
 	analyzeLogs: function(logs) {
+		this.runtime.isRunning = true;
 		logs = logs || this.data.logs;
 		if (!logs || !Object.keys(logs).length) {
 			this.ui.putlog('No logs to analyze.', 'warning');
+			this.runtime.isRunning = false;
 			return;
 		}
 		var keyLengthCutoff = -1;
@@ -786,6 +788,7 @@ window.TornAPIReader = {
 		this.ui.putlog(dataTypes, 'routine');
 		this.ui.putlog('Log type counts:', 'routine');
 		this.ui.putlog(logCounts, 'routine');
+		this.runtime.isRunning = false;
 	},
 	/* Contains functions called by the user interface, or called by the program to interact with the interface. (Ordered by frequency/importance of use.) */
 	ui: {
@@ -883,7 +886,7 @@ window.TornAPIReader = {
 		},
 		/* Outputs a message to the event log on the page. Note: a wrapper function is passed to `finish` in routines; documentation there needs to be updated for changes.
 			*msg: the message to display, or something to be converted to a message.
-			*type (optional): the type of message. Can be one of: error, warning, info (default), routine.
+			*type (optional): the type of message. Can be one of: error (only use if stopping execution), warning, info (default), routine.
 			*onoff (optional): if true and `msg` is:
 				an array - toString will be called instead of joining it with spaces.
 				an object - it will be stringified without spaces instead of using tabs.
@@ -892,6 +895,7 @@ window.TornAPIReader = {
 			var out = document.getElementById('logging').value ? '\n' : '';
 			if (type === 'error') {
 				out += 'ERROR: ';
+				window.TornAPIReader.runtime.isRunning = false;
 			} else if (type === 'warning') {
 				out += 'Warning: ';
 			} else if (type === 'routine') {
@@ -937,6 +941,7 @@ window.TornAPIReader = {
 			MAY contain a function keyed `finish` to finalize processing data and/or provide output, which will be passed the output function.
 				The output function takes two parameters: something to display, and an optional behavior switch.
 					If the switch is true, arrays will be joined with commas instead of spaces and objects will be pretty-printed instead of being minified.
+					Use four spaces for any additional indentation.
 			MAY also use the following keys for organization purposes: `data` and `functions`.
 			MAY specify additional required API calls in an array keyed `require`, e.g. 'user.travel' or 'property.property'.
 				The data from these calls will be stored in `data.torn` under the same keys, e.g. `data.torn.torn.items`. These will be excluded from output.
@@ -989,6 +994,19 @@ window.TornAPIReader = {
 				//todo
 				output((this.data.count.total ? (this.data.count.failure / this.data.count.total * 100).toFixed(2) : 0) + '% failed');
 				output(this.data);
+			},
+		},
+		crimes: {
+			description: "Gets stats on crimes the player has done.",
+			data: {},
+			init: function(custom) {
+				
+			},
+			processor: function(log) {
+				//TODO
+			},
+			finish: function(output) {
+				
 			},
 		},
 		footroulette: {

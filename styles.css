@@ -41,6 +41,10 @@ button + button {
 	width: 95%;
 }
 
+textarea[readonly] {
+	background-color: #EEEEEE;
+}
+
 #output button {
 	float: right;
 	margin-right: 4%;
