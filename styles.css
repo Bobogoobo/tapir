@@ -1,3 +1,4 @@
+
 label {
 	display: inline-block;
 	margin: 0.5em 0;
@@ -50,4 +51,8 @@ textarea[readonly] {
 	margin-right: 4%;
 	margin-top: 0.5%;
 	padding: 0.1em 1em;
+}
+
+#output label {
+	font-weight: bold;
 }

@@ -66,28 +66,36 @@ window.TornAPIReader = {
 			},
 		};
 	},
-	/* An object to convert some common log strings to IDs. Using arrays for ease of use. Values must be unique and start from 1 (0 for no value). Key lowercase and singular, sorted. */
-	customLogID: {
-		captcha: ['', 'image captcha', 'text captcha', 'reCaptcha'],
-		cityjob: ['', 'Army', 'Grocer', 'Casino', 'Medical', 'Education', 'Law'],
-		combatstat: ['', 'strength', 'defense', 'speed', 'dexterity'],
-		highlow: ['', 'high', 'low', 'draw'],
-		hunting: ['', 'a beginners hunting session', 'a standard hunting session', 'an advanced hunting session'],
-		key: ['', 'Public Only', 'Minimal Access', 'Limited Accesss', 'Full Access'],
-		lottery: ['', 'Daily Dime', 'Lucky Shot', 'Holy Grail'],
-		missiondiff: ['', 'very easy', 'easy', 'medium', 'hard', 'very hard', 'expert'],
-		missiontype: ['', 'mission', 'contract'],
-		revive: ['', 'allow everyone', 'allow friends and faction', 'allow nobody'],
-		staff: ['', 'Maid', 'Butler', 'Guard', 'Doctor', 'Pilot'],
-		travel: ['', 'standard', 'personal', 'private', 'business'],
-		upgrade: [
-			'', 'Sufficient Interior Modification', 'Superior Interior Modification',
-			'Hot Tub', 'Sauna', 'Open Bar', 'Small Pool', 'Medium Pool', 'Large Pool',
-			'Small Vault', 'Medium Vault', 'Large Vault', 'Extra Large Vault',
-			'Medical Facility', 'Advanced Shooting Range', 'Airstrip', 'Private Yacht'
-		],
-		virus: ['', 'a simple', 'a polymorphic', 'a tunneling', 'an armored', 'a stealth', 'a firewalk'],
-		wheel: ['', 'the Wheel of Lame', 'the Wheel of Mediocrity', 'the Wheel of Awesome'],
+	/* Contains all ID mappings. */
+	logIDs: {
+		/* IDs built into Torn (usually the log) but not available from the API. Loaded from another file. */
+		torn: {},
+		/* An object to convert some common log strings to IDs. Using arrays for ease of use.
+			Values must be unique and start from 1 (0 for no value).
+			Keys should be lowercase and singular, sorted alphabetically.
+		*/
+		custom: {
+			captcha: ['', 'image captcha', 'text captcha', 'reCaptcha'],
+			cityjob: ['', 'Army', 'Grocer', 'Casino', 'Medical', 'Education', 'Law'],
+			combatstat: ['', 'strength', 'defense', 'speed', 'dexterity'],
+			highlow: ['', 'high', 'low', 'draw'],
+			hunting: ['', 'a beginners hunting session', 'a standard hunting session', 'an advanced hunting session'],
+			key: ['', 'Public Only', 'Minimal Access', 'Limited Accesss', 'Full Access'],
+			lottery: ['', 'Daily Dime', 'Lucky Shot', 'Holy Grail'],
+			missiondiff: ['', 'very easy', 'easy', 'medium', 'hard', 'very hard', 'expert'],
+			missiontype: ['', 'mission', 'contract'],
+			revive: ['', 'allow everyone', 'allow friends and faction', 'allow nobody'],
+			staff: ['', 'Maid', 'Butler', 'Guard', 'Doctor', 'Pilot'],
+			travel: ['', 'standard', 'personal', 'private', 'business'],
+			upgrade: [
+				'', 'Sufficient Interior Modification', 'Superior Interior Modification',
+				'Hot Tub', 'Sauna', 'Open Bar', 'Small Pool', 'Medium Pool', 'Large Pool',
+				'Small Vault', 'Medium Vault', 'Large Vault', 'Extra Large Vault',
+				'Medical Facility', 'Advanced Shooting Range', 'Airstrip', 'Private Yacht'
+			],
+			virus: ['', 'a simple', 'a polymorphic', 'a tunneling', 'an armored', 'a stealth', 'a firewalk'],
+			wheel: ['', 'the Wheel of Lame', 'the Wheel of Mediocrity', 'the Wheel of Awesome'],
+		},
 	},
 	/* Regular expressions stored for re-use in the program. */
 	regex: {
@@ -223,7 +231,7 @@ window.TornAPIReader = {
 			//End manipulation
 			//Begin replacing strings with custom IDs
 			if (path === 'torn.properties') {
-				temp = [this.customLogID.staff, this.customLogID.upgrade];
+				temp = [this.logIDs.custom.staff, this.logIDs.custom.upgrade];
 				Object.keys(response[endpoint]).forEach(function(property) {
 					//shortening keys as well
 					response[endpoint][property].staff = response[endpoint][property].staff_available.map(function(staff) {
@@ -354,14 +362,14 @@ window.TornAPIReader = {
 						datum = !!datum ? 1 : 0;
 					}
 					if (logLine.category === 'Gym') {
-						if (this.customLogID.combatstat.indexOf(datumName.replace('_before', '')) > 0) {
-							dataStaging.data.stat = this.customLogID.combatstat.indexOf(datumName.replace('_before', ''));// add new key in order
+						if (this.logIDs.custom.combatstat.indexOf(datumName.replace('_before', '')) > 0) {
+							dataStaging.data.stat = this.logIDs.custom.combatstat.indexOf(datumName.replace('_before', ''));// add new key in order
 							datumName = 'before';
 							//fix API inconsistency in data type
 							datum = parseFloat(datum, 10);
-						} else if (this.customLogID.combatstat.indexOf(datumName.replace('_after', '')) > 0) {
+						} else if (this.logIDs.custom.combatstat.indexOf(datumName.replace('_after', '')) > 0) {
 							datumName = 'after';
-						} else if (this.customLogID.combatstat.indexOf(datumName.replace('_increased', '')) > 0) {
+						} else if (this.logIDs.custom.combatstat.indexOf(datumName.replace('_increased', '')) > 0) {
 							datumName = 'increased';
 						}
 					}
@@ -406,43 +414,43 @@ window.TornAPIReader = {
 						datumName = datumName.toLowerCase();
 					}
 					//Begin replacing strings with custom IDs
-					//  in order of customLogID key name
+					//  in order of logIDs.custom key name
 					if (logLine.category === 'Captcha' && datumName === 'type') {
-						datum = this.customLogID.captcha.indexOf(datum);
+						datum = this.logIDs.custom.captcha.indexOf(datum);
 					}
 					if (logLine.category === 'Job' && datumName === 'job') {
-						datum = this.customLogID.cityjob.indexOf(datum);
+						datum = this.logIDs.custom.cityjob.indexOf(datum);
 					}
 					if (['Casino high-low lose', 'Casino high-low draw', 'Casino high-low win'].indexOf(logLine.title) !== -1 && (datumName === 'action' || datumName === 'result')) {
-						datum = this.customLogID.highlow.indexOf(datum);
+						datum = this.logIDs.custom.highlow.indexOf(datum);
 					}
 					if (logLine.title === 'Hunting' && datumName === 'session_type') {
-						datum = this.customLogID.hunting.indexOf(datum);
+						datum = this.logIDs.custom.hunting.indexOf(datum);
 					}
 					if ((logLine.title === 'API key add' || logLine.title == 'API key delete') && datumName === 'access_level') {
-						datum = this.customLogID.key.indexOf(datum);
+						datum = this.logIDs.custom.key.indexOf(datum);
 					}
 					if ((logLine.title === 'Casino lottery bet' || logLine.title === 'Casino lottery win') && datumName === 'lottery') {
-						datum = this.customLogID.lottery.indexOf(datum);
+						datum = this.logIDs.custom.lottery.indexOf(datum);
 					}
 					if (logLine.category === 'Missions' && datumName === 'difficulty') {
 						datum = datum.replace(/^v/, 'very ');
-						datum = this.customLogID.missiondiff.indexOf(datum);
+						datum = this.logIDs.custom.missiondiff.indexOf(datum);
 					}
 					if (logLine.category === 'Missions' && datumName === 'type') {
-						datum = this.customLogID.missiontype.indexOf(datum);
+						datum = this.logIDs.custom.missiontype.indexOf(datum);
 					}
 					if (logLine.category === 'Revive preference' && datumName === 'result') {
-						datum = this.customLogID.revive.indexOf(datum);
+						datum = this.logIDs.custom.revive.indexOf(datum);
 					}
 					//todo: verify using someone's data - what datumName is and if it's an array with strings capitalized
 					if (logLine.title === 'Property staff' && datumName === 'staff') {
 						datum = datum.map(function(staff) {
-							return this.customLogID.staff.indexOf(staff);
+							return this.logIDs.custom.staff.indexOf(staff);
 						}, this);
 					}
 					if (logLine.title === 'Travel initiate' && datumName === 'travel_method') {
-						datum = this.customLogID.travel.indexOf(datum);
+						datum = this.logIDs.custom.travel.indexOf(datum);
 					}
 					if (logLine.title === 'Property upgrade' && datumName === 'upgrades') {
 						datum = datum.map(function(upgrade) {
@@ -451,15 +459,15 @@ window.TornAPIReader = {
 								upgrade = upgrade + ' modification';
 							}
 							upgrade = upgrade.replace(/\s\S/g, function(match) { return match.toUpperCase(); });
-							return this.customLogID.upgrade.indexOf(upgrade);
+							return this.logIDs.custom.upgrade.indexOf(upgrade);
 						}, this);
 					}
 					if (logLine.category === 'Viruses' && datumName === 'virus') {
-						datum = this.customLogID.virus.indexOf(datum);
+						datum = this.logIDs.custom.virus.indexOf(datum);
 					}
 					//todo: If the "Spin the wheel" category gets implemented, use that instead
 					if (logLine.category === 'Casino' && /^Casino spin the wheel/.test(logLine.title) && datumName === 'wheel') {
-						datum = this.customLogID.wheel.indexOf(datum);
+						datum = this.logIDs.custom.wheel.indexOf(datum);
 					}
 					//End custom IDs
 					//End manipulation
@@ -577,7 +585,7 @@ window.TornAPIReader = {
 			var routine = this.routines[modus];
 			if (routine) {
 				if (typeof routine.init === 'function') {
-					routine.init(this.customLogID);
+					routine.init(this.logIDs);
 				}
 				return true;
 			} else {
@@ -950,13 +958,14 @@ window.TornAPIReader = {
 				NOTE: Requires are not guaranteed to be available in `processor`, so you'll need to process them in `finish`!
 			MUST provide a function keyed `init` if using `data` or tracking other state.
 				`data` should be declared as an empty object/array and set with the default values in `init`.
-				`init` is passed the list of custom string->ID maps used by the program.
+				`init` is passed an object of ID mappings used by the program.
+					It contains two sub-objects: `torn` for ones defined by the game (ID -> string) and `custom` for ones defined by the program (string -> ID).
 					Store **only the associations you need**, preferably as `data.id` to exclude it from output.
 			MAY NOT access any properties outside of its scope, which will be provided as `this`, and passed parameters.
 			MAY have a docstring for a more verbose description/explanation.
 		The passed logs:
 			Have already been converted to standard keys, notation, and data types.
-				If using data containing strings that the program maps to IDs, you will need to store **only the associations you need** from `init`.
+				If using data containing strings that the program maps to IDs or vice versa, you will need to store **only the associations you need** from `init`.
 			Contain the following keys: timestamp, category, title, data.
 			Have had category and title converted back to strings matching the Torn API list.
 	*/
@@ -964,11 +973,11 @@ window.TornAPIReader = {
 		captcha: {
 			description: "Gets stats on the player's interaction with captchas.",
 			data: {},
-			init: function(custom) {
+			init: function(ids) {
 				this.data = {
 					count: { 'total': 0, 'success': 0, 'failure': 0, 'unknown': 0 },
 					types: {},
-					id: custom.captcha,
+					id: ids.custom.captcha,
 				};
 			},
 			processor: function(log) {
@@ -999,7 +1008,7 @@ window.TornAPIReader = {
 		crimes: {
 			description: "Gets stats on crimes the player has done.",
 			data: {},
-			init: function(custom) {
+			init: function(ids) {
 				
 			},
 			processor: function(log) {
@@ -1036,12 +1045,12 @@ window.TornAPIReader = {
 			description: "Gets stats on the player's spins on Leslie's wheels.",
 			require: ['torn.items', 'torn.properties', 'torn.pawnshop'],
 			data: {},
-			init: function(custom) {
+			init: function(ids) {
 				this.data = {
-					id: custom.wheel,
+					id: ids.custom.wheel,
 					wheels: {},
 				};
-				custom.wheel.forEach(function(wheel) {
+				this.data.id.forEach(function(wheel) {
 					this.data.wheels[wheel || 'overall'] = {
 						total: 0,
 						cost: {},
@@ -1182,7 +1191,7 @@ window.TornAPIReader = {
 			description: "",
 			require: [],
 			data: {},
-			init: function(custom) {
+			init: function(ids) {
 			},
 			processor: function(log, hash) {
 			},
