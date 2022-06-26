@@ -1100,7 +1100,7 @@ window.TornAPIReader = {
 								data.itemsGained[log.data.item_gained].count += 1;
 							} else {
 								data.itemsGained[log.data.item_gained] = {
-									desc: null,
+									name: null,
 									count: 1,
 									value: null,
 									totalValue: null,
@@ -1115,10 +1115,16 @@ window.TornAPIReader = {
 				}
 			},
 			finish: function(output) {
-				//todo; lookup items (remember to exclude string if looping); can do drop rates like with wheels
-
+				//todo: can do drop rates for items like with wheels
 				Object.keys(this.data.count).forEach(function(crime) {
 					var crimeData = this.data.count[crime];
+					var tornItems = this.data.torn.torn.items;
+					Object.keys(crimeData.itemsGained).forEach(function(item) {
+						var itemData = crimeData.itemsGained[item];
+						itemData.name = tornItems[item].name;
+						itemData.value = Math.max(tornItems[item].sell_price, tornItems[item].market_value);
+						itemData.totalValue = itemData.value * itemData.count;
+					});
 					if (crimeData.total) {
 						output(crimeData);
 					} else {
