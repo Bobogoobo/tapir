@@ -188,8 +188,14 @@ window.TornAPIReader = {
 	*/
 	readRequire: function(requires) {
 		var endpoints = {};
-		requires.forEach(function(req) {
-			req = req.split('.');
+		requires.forEach(function(require) {
+			var req = require.split('.');
+			req[0] = req[0].trim();
+			req[1] = req[1].trim();
+			if (req[2] || !req[1]) {
+				this.ui.putlog('Invalid require specified. Any routines using it may not work: ' + require, 'warning');
+				return;
+			}
 			if (!endpoints[req[0]]) {
 				endpoints[req[0]] = [];
 			}
@@ -210,7 +216,7 @@ window.TornAPIReader = {
 			this.handleRequire({}, '/fake/?');
 		}
 	},
-	/* Handles each response for requested auxiliary data, storing it where needed.
+	/* Handles each response for requested auxiliary data, standardizing data and storing it where needed.
 		*response: the JSON data obtained by request().
 		*url: the requested URL.
 	*/
@@ -218,27 +224,34 @@ window.TornAPIReader = {
 		var zone = url.match(/\/([a-z]+)\/\?/)[1];
 		Object.keys(response).forEach(function(endpoint) {
 			var path = zone + '.' + endpoint;
-			var temp;
 			//Begin specific data items to manipulate
 			if (path === 'torn.items') {
+				var unusedItems = [];
 				//For items, store base URL and remove it from each item to save a bit of space
-				temp = response[endpoint][1].image.split(/(\d)/);// first item is keyed 1, this is not array access
+				var filePath = response[endpoint][1].image.split(/(\d)/);// first item is keyed 1, this is not array access
 				Object.keys(response[endpoint]).forEach(function(item) {
-					response[endpoint][item].image = response[endpoint][item].image.replace(temp[0], '');
+					response[endpoint][item].image = response[endpoint][item].image.replace(filePath[0], '');
+					if (response[endpoint][item].type === 'Unused') {
+						unusedItems.push(item);
+					}
 				});
-				response[endpoint].base_url = temp[0];
+				response[endpoint].base_url = filePath[0];
+				//Remove unused items
+				unusedItems.forEach(function(item)  {
+					delete response[endpoint][item];
+				});
 			}
 			//End manipulation
 			//Begin replacing strings with custom IDs
 			if (path === 'torn.properties') {
-				temp = [this.logIDs.custom.staff, this.logIDs.custom.upgrade];
+				var customIDs = [this.logIDs.custom.staff, this.logIDs.custom.upgrade];
 				Object.keys(response[endpoint]).forEach(function(property) {
 					//shortening keys as well
 					response[endpoint][property].staff = response[endpoint][property].staff_available.map(function(staff) {
-						return temp[0].indexOf(staff);
+						return customIDs[0].indexOf(staff);
 					});
 					response[endpoint][property].upgrades = response[endpoint][property].upgrades_available.map(function(upgrade) {
-						return temp[1].indexOf(upgrade);
+						return customIDs[1].indexOf(upgrade);
 					});
 					delete response[endpoint][property].staff_available;
 					delete response[endpoint][property].upgrades_available;
@@ -534,7 +547,11 @@ window.TornAPIReader = {
 		};
 		this.config.modules.forEach(function(modus) {
 			if (this.routines[modus].processor) {
-				this.routines[modus].processor.call(this.routines[modus], logCopy, hash);
+				try {
+					this.routines[modus].processor.call(this.routines[modus], logCopy, hash);
+				} catch (err) {
+					this.ui.putlog(['Error running routine `' + modus + '` with log:', logCopy, '- error:', err], 'warning');
+				}
 			}
 		}, this);
 	},
@@ -574,7 +591,8 @@ window.TornAPIReader = {
 		this.runtime.startTime = Math.floor(new Date().getTime() / 1000);
 		
 		this.config.key = key;
-		if (modules[0] === 'ALL') {
+		var allModules = modules[0] === 'ALL';
+		if (allModules) {
 			modules = Object.keys(this.routines);
 		}
 		this.config.modules = modules.filter(function(modus) {
@@ -584,8 +602,16 @@ window.TornAPIReader = {
 			}
 			var routine = this.routines[modus];
 			if (routine) {
+				if (allModules && routine.wip) {
+					return false;
+				}
 				if (typeof routine.init === 'function') {
-					routine.init(this.logIDs);
+					try {
+						routine.init(this.logIDs);
+					} catch (err) {
+						this.ui.putlog(['Error initializing routine `' + modus + '` - error:', err], 'warning');
+						return false;
+					}
 				}
 				return true;
 			} else {
@@ -703,7 +729,11 @@ window.TornAPIReader = {
 		this.config.modules.forEach(function(modus) {
 			if (typeof this.routines[modus].finish === 'function') {
 				this.ui.putlog('*' + modus + ':', 'info');
-				this.routines[modus].finish(function(msg, swtch) { return TAPIR('putlog', msg, 'routine', swtch); });
+				try {
+					this.routines[modus].finish(function(msg, swtch) { return TAPIR('putlog', msg, 'routine', swtch); });
+				} catch (err) {
+					this.ui.putlog(['Error finishing routine `' + modus + '` - error:', err], 'warning');
+				}
 			}
 		}, this);
 		this.ui.putlog('Routines completed.');
@@ -908,6 +938,8 @@ window.TornAPIReader = {
 				out += 'Warning: ';
 			} else if (type === 'routine') {
 				out += '    ';
+			} else if (type && type !== 'info') {
+				out += '[Invalid Log Type]: ';
 			}
 			if (typeof msg === 'string') {
 				out += msg;
@@ -960,7 +992,8 @@ window.TornAPIReader = {
 				`data` should be declared as an empty object/array and set with the default values in `init`.
 				`init` is passed an object of ID mappings used by the program.
 					It contains two sub-objects: `torn` for ones defined by the game (ID -> string) and `custom` for ones defined by the program (string -> ID).
-					Store **only the associations you need**, preferably as `data.id` to exclude it from output.
+					Store **only the associations you need**, preferably as `data.id` to exclude it from output automatically.
+			MAY define the property `wip` (work in progress) - if true, the routine will be excluded when running all routines.
 			MAY NOT access any properties outside of its scope, which will be provided as `this`, and passed parameters.
 			MAY have a docstring for a more verbose description/explanation.
 		The passed logs:
@@ -1011,6 +1044,7 @@ window.TornAPIReader = {
 				this.data = {
 					id: ids.torn.crime,
 					count: {},
+					undone: [],
 				};
 				Object.keys(this.data.id).forEach(function(crime) {
 					var crimeData = ids.torn.crime[crime];
@@ -1084,16 +1118,22 @@ window.TornAPIReader = {
 				}
 			},
 			finish: function(output) {
-				//todo; lookup items; briefly say which ones are 0; can do drop rates like with wheels
+				//todo; lookup items; can do drop rates like with wheels
 
 				Object.keys(this.data.count).forEach(function(crime) {
-					if (this.data.count[crime].total) {
-						output(this.data.count[crime]);
+					var crimeData = this.data.count[crime];
+					if (crimeData.total) {
+						output(crimeData);
+					} else {
+						//todo: formatting
+						this.data.undone.push([crimeData.desc, crimeData.category, crimeData.subcat]);
 					}
 				}, this);
+				output(['Crimes not done:', this.data.undone], true);
 			},
 		},
 		footroulette: {
+			wip: true,
 			description: "Gets stats on the player's Foot Russian Roulette games.",
 			data: {},
 			init: function() {
@@ -1107,6 +1147,7 @@ window.TornAPIReader = {
 			Does not include things that aren't recorded in the API, like racing opponents.
 		*/
 		interactions: {
+			wip: true,
 			description: "Builds a list of other players with whom the player has interacted and how, with some exceptions.",
 			data: {},
 			init: function() {
@@ -1114,6 +1155,35 @@ window.TornAPIReader = {
 			},
 			processor: function(log) {
 				//TODO
+			},
+		},
+		inventory: {
+			wip: true,
+			description: "Gets stats on the player's item collection.",
+			require: ['torn.items', 'user.inventory', 'user.display', 'user.bazaar'],
+			data: {},
+			init: function(ids) {
+				
+			},
+			processor: function(log, hash) {
+				//todo: track item input and output, total and from/to where
+			},
+			finish: function(output) {
+				
+			},
+		},
+		racing: {
+			wip: true,
+			description: "Gets stats on the player's racing career.",
+			data: {},
+			init: function(ids) {
+				
+			},
+			processor: function(log, hash) {
+				//TODO
+			},
+			finish: function(output) {
+				
 			},
 		},
 		wheels: {
@@ -1263,6 +1333,7 @@ window.TornAPIReader = {
 		/* Template for new routines (remove any parts or variables you're not using):
 
 		name: {
+			wip: true,
 			description: "",
 			require: [],
 			data: {},
