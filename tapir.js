@@ -550,7 +550,7 @@ window.TornAPIReader = {
 				try {
 					this.routines[modus].processor.call(this.routines[modus], logCopy, hash);
 				} catch (err) {
-					this.ui.putlog(['Error running routine `' + modus + '` with log:', logCopy, '- error:', err], 'warning');
+					this.ui.putlog(['Error running routine `' + modus + '` with log:', logCopy, '-', err], 'warning');
 				}
 			}
 		}, this);
@@ -609,7 +609,7 @@ window.TornAPIReader = {
 					try {
 						routine.init(this.logIDs);
 					} catch (err) {
-						this.ui.putlog(['Error initializing routine `' + modus + '` - error:', err], 'warning');
+						this.ui.putlog(['Error initializing routine `' + modus + '` -', err], 'warning');
 						return false;
 					}
 				}
@@ -677,11 +677,6 @@ window.TornAPIReader = {
 	*/
 	ignition: function(response) {
 		this.runtime.pending -= 1;
-		if (response.error) {
-			//todo: this is always intercepted in request
-			this.ui.putlog('Stopping. Please check your API key. Error: ' + response.error.error, 'error');
-			return;
-		}
 		this.data.id = response.player_id;
 		this.data.name = response.name;
 		var splitDate = response.signup.split(' ');
@@ -732,7 +727,7 @@ window.TornAPIReader = {
 				try {
 					this.routines[modus].finish(function(msg, swtch) { return TAPIR('putlog', msg, 'routine', swtch); });
 				} catch (err) {
-					this.ui.putlog(['Error finishing routine `' + modus + '` - error:', err], 'warning');
+					this.ui.putlog(['Error finishing routine `' + modus + '` -', err], 'warning');
 				}
 			}
 		}, this);
@@ -797,6 +792,8 @@ window.TornAPIReader = {
 					addToObject(dataTypes, 'number string', titleAndKey);
 				} else if (typeof dataValue === 'boolean') {
 					addToObject(dataTypes, 'boolean', titleAndKey);
+				} else if (dataValue === undefined) {
+					addToObject(dataTypes, 'undef', titleAndKey);
 				} else if (dataValue === null && ['8390 opponent'].indexOf(titleAndKey) === -1) {
 					addToObject(dataTypes, 'null', titleAndKey);
 				} else if (dataValue === '') {
@@ -1107,7 +1104,7 @@ window.TornAPIReader = {
 									count: 1,
 									value: null,
 									totalValue: null,
-								}
+								};
 							}
 							break;
 						case 'Crime success points gain':
@@ -1118,7 +1115,7 @@ window.TornAPIReader = {
 				}
 			},
 			finish: function(output) {
-				//todo; lookup items; can do drop rates like with wheels
+				//todo; lookup items (remember to exclude string if looping); can do drop rates like with wheels
 
 				Object.keys(this.data.count).forEach(function(crime) {
 					var crimeData = this.data.count[crime];
@@ -1129,7 +1126,8 @@ window.TornAPIReader = {
 						this.data.undone.push([crimeData.desc, crimeData.category, crimeData.subcat]);
 					}
 				}, this);
-				output(['Crimes not done:', this.data.undone], true);
+				output('Crimes not done:');
+				output(this.data.undone);
 			},
 		},
 		footroulette: {
@@ -1141,6 +1139,9 @@ window.TornAPIReader = {
 			},
 			processor: function(log) {
 				//TODO
+			},
+			finish: function(output) {
+				
 			},
 		},
 		/* Builds a list of other players with whom the player has interacted in any way, sorted by most frequent.
@@ -1156,20 +1157,116 @@ window.TornAPIReader = {
 			processor: function(log) {
 				//TODO
 			},
+			finish: function(output) {
+				
+			},
 		},
+		/* Gets stats on the player's item collection. Inventory, display case, and bazaar are all counted together. */
 		inventory: {
-			wip: true,
 			description: "Gets stats on the player's item collection.",
 			require: ['torn.items', 'user.inventory', 'user.display', 'user.bazaar'],
 			data: {},
 			init: function(ids) {
-				
+				this.data = {
+					gameItems: 0,
+					totalOwned: 0,
+					totalLiquid: 0,
+					unowned: {},
+					extra: {},
+				};
 			},
-			processor: function(log, hash) {
+			processor: function(log) {
 				//todo: track item input and output, total and from/to where
 			},
 			finish: function(output) {
-				
+				function compare(a, b, mode, asc) {
+					if (!a && !b) {
+						return mode === 'sort' ? 0 : null;
+					}
+					if (!a) {
+						return mode === 'sort' ? 1 : b;
+					}
+					if (!b) {
+						return mode === 'sort' ? -1 : a;
+					}
+					if (mode === 'max' || mode === 'min') {
+						return Math[mode](a, b);
+					} else if (mode === 'sort') {
+						if (asc) {
+							return a - b || (a > b ? 1 : (a < b ? -1 : 0));// ascending
+						} else {
+							return b - a || (a < b ? 1 : (a > b ? -1 : 0));// descending
+						}
+					}
+					return mode === 'sort' ? 0 : undefined;
+				}
+
+				var miscData = this.data;
+				var unowned = this.data.unowned;
+				var extra = this.data.extra;
+				var itemData = this.data.torn.torn.items;
+				this.data.torn.user.inventory.concat(this.data.torn.user.display, this.data.torn.user.bazaar).forEach(function(item) {
+					itemData[item.ID].quantity = (itemData[item.ID].quantity || 0) + item.quantity;
+				});
+				Object.keys(itemData).forEach(function(item) {
+					var data = itemData[item];
+					if (typeof data === 'string') {
+						return;
+					}
+					miscData.gameItems += 1;
+					if (!data.quantity) {
+						data.quantity = 0;
+						unowned[item] = {
+							name: data.name,
+							buy: data.buy_price,
+							market: data.market_value,
+							circulation: data.circulation,
+						};
+					} else if (data.quantity > 1) {
+						extra[item] = {
+							name: data.name,
+							quantity: data.quantity,
+							sell: data.sell_price,
+							market: data.market_value,
+							circulation: data.circulation,
+						};
+					}
+					if (data.quantity) {
+						miscData.totalOwned += 1;
+					}
+				});
+				var cheapUnowned = Object.keys(unowned).map(function(item) {
+					return {
+						name: unowned[item].name,
+						cost: compare(unowned[item].buy, unowned[item].market, 'min'),
+						circ: unowned[item].circulation,
+					};
+				}).sort(function(a, b) {
+					return compare(a.cost, b.cost, 'sort', true) || compare(a.circ, b.circ, 'sort') || compare(a.name, b.name, 'sort', true) || 0;
+				});
+				var valuableExtra = Object.keys(extra).map(function(item) {
+					var value = compare(extra[item].sell, extra[item].market, 'max');
+					var totalValue = (value || 0) * (extra[item].quantity - 1);
+					miscData.totalLiquid += totalValue;
+					return {
+						name: extra[item].name,
+						total: totalValue,
+						quantity: extra[item].quantity,
+						value: value,
+						circ: extra[item].circulation,
+					};
+				}).sort(function(a, b) {
+					return compare(a.total, b.total, 'sort') || compare(a.circ, b.circ, 'sort') || compare(a.name, b.name, 'sort', true) || 0;
+				});
+				output([
+					'Own', miscData.totalOwned,
+					'of', miscData.gameItems,
+					'game items (' + (miscData.totalOwned / miscData.gameItems * 100).toFixed(2) + '%) with',
+					miscData.totalLiquid.toLocaleString(), 'total liquidity. (Values exclude keeping one of each item.)'
+				]);
+				//todo
+				output({ 'Most valuable stacks of extra items': valuableExtra });
+				output({ 'Cheapest unowned items': cheapUnowned });
 			},
 		},
 		racing: {
@@ -1179,7 +1276,7 @@ window.TornAPIReader = {
 			init: function(ids) {
 				
 			},
-			processor: function(log, hash) {
+			processor: function(log) {
 				//TODO
 			},
 			finish: function(output) {
@@ -1321,10 +1418,10 @@ window.TornAPIReader = {
 					});
 					wd.totalValue = wd.itemTotalValue + wd.propertyTotalValue + wd.pointsTotalValue + wd.moneyTotal;
 					output(wheel + ':');
-					output('    total spent - ' + wd.costTotal.toLocaleString());
-					output('    total earned - ' + wd.totalValue.toLocaleString());
-					output('    profitability - ' + (wd.totalValue / wd.costTotal).toFixed(3));
-					output(['    profit per day -', Math.round((wd.totalValue - wd.costTotal) / wd.total).toLocaleString(), 'on', (wd.total - wd.freeCount).toLocaleString(), 'spins']);
+					output('    total spent: ' + wd.costTotal.toLocaleString());
+					output('    total earned: ' + wd.totalValue.toLocaleString());
+					output('    profitability: ' + (wd.totalValue / wd.costTotal).toFixed(3));
+					output(['    profit per day:', Math.round((wd.totalValue - wd.costTotal) / wd.total).toLocaleString(), 'on', (wd.total - wd.freeCount).toLocaleString(), 'spins']);
 				});
 				//todo
 				output(this.data.wheels);
