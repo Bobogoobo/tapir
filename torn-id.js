@@ -1,6 +1,7 @@
 /* Contains IDs used by the Torn API that are not available from an endpoint.
 	Must be parsed after the main file.
 	Keys should be lowercase and singular, sorted alphabetically.
+	Null any missing entries; double quote all strings.
 */
 window.TornAPIReader.logIDs.torn = {
 	/* id: description, category, [sub-category] */
@@ -90,6 +91,32 @@ window.TornAPIReader.logIDs.torn = {
 		83: ["Bomb a Factory", "Bombings"],
 		84: ["Bomb a Government Building", "Bombings"],
 		85: ["Hack into a Bank Mainframe", "Hacking"],
-		86: ["Hack the F.B.I. Mainframe", "Hacking"],// made punctuation consistent
+		86: ["Hack the F.B.I. Mainframe", "Hacking"],// corrected punctuation
+	},
+	racetrack: {
+		1: null,
+		2: null,
+		3: null,
+		4: null,
+		5: null,
+		6: "Uptown",
+		7: "Withdrawal",
+		8: "Underdog",
+		9: "Parkland",
+		10: "Docks",
+		11: "Commerce",
+		12: "Two Islands",
+		13: null,
+		14: null,
+		15: "Industrial",
+		16: "Vector",
+		17: "Mudpit",
+		18: "Hammerhead",
+		19: "Sewage",
+		20: "Meltdown",
+		21: "Speedway",
+		22: null,
+		23: "Stone Park",
+		24: "Convict",
 	},
 };

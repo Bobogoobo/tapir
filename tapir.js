@@ -237,7 +237,7 @@ window.TornAPIReader = {
 				});
 				response[endpoint].base_url = filePath[0];
 				//Remove unused items
-				unusedItems.forEach(function(item)  {
+				unusedItems.forEach(function(item) {
 					delete response[endpoint][item];
 				});
 			}
@@ -550,7 +550,7 @@ window.TornAPIReader = {
 				try {
 					this.routines[modus].processor.call(this.routines[modus], logCopy, hash);
 				} catch (err) {
-					this.ui.putlog(['Error running routine `' + modus + '` with log:', logCopy, '-', err], 'warning');
+					this.ui.putlog(['Error running routine `' + modus + '` with log:', JSON.stringify(logCopy), '-', err], 'warning');
 				}
 			}
 		}, this);
@@ -921,6 +921,7 @@ window.TornAPIReader = {
 		},
 		/* Outputs a message to the event log on the page. Note: a wrapper function is passed to `finish` in routines; documentation there needs to be updated for changes.
 			*msg: the message to display, or something to be converted to a message.
+				Note: if passing an array, any objects that are elements need JSON.stringify called on them.
 			*type (optional): the type of message. Can be one of: error (only use if stopping execution), warning, info (default), routine.
 			*onoff (optional): if true and `msg` is:
 				an array - toString will be called instead of joining it with spaces.
@@ -1005,9 +1006,9 @@ window.TornAPIReader = {
 			data: {},
 			init: function(ids) {
 				this.data = {
+					id: ids.custom.captcha,
 					count: { 'total': 0, 'success': 0, 'failure': 0 },
 					types: {},
-					id: ids.custom.captcha,
 				};
 			},
 			processor: function(log) {
@@ -1044,7 +1045,7 @@ window.TornAPIReader = {
 					undone: [],
 				};
 				Object.keys(this.data.id).forEach(function(crime) {
-					var crimeData = ids.torn.crime[crime];
+					var crimeData = this.data.id[crime];
 					this.data.count[crime] = {
 						desc: crimeData[0],
 						category: crimeData[1],
@@ -1172,7 +1173,7 @@ window.TornAPIReader = {
 			description: "Gets stats on the player's item collection.",
 			require: ['torn.items', 'user.inventory', 'user.display', 'user.bazaar'],
 			data: {},
-			init: function(ids) {
+			init: function() {
 				this.data = {
 					gameItems: 0,
 					totalOwned: 0,
@@ -1182,7 +1183,7 @@ window.TornAPIReader = {
 				};
 			},
 			processor: function(log) {
-				//todo: track item input and output, total and from/to where
+				//todo: track item input and output, total and from/to where. And anything else interesting from the log
 			},
 			finish: function(output) {
 				function compare(a, b, mode, asc) {
@@ -1276,17 +1277,114 @@ window.TornAPIReader = {
 			},
 		},
 		racing: {
-			wip: true,
 			description: "Gets stats on the player's racing career.",
 			data: {},
 			init: function(ids) {
-				
+				this.data = {
+					id: ids.torn.racetrack,
+					classes: {},
+					totalPoints: 0,
+					races: {},
+					tracks: {},
+					crashes: {
+						cars: {},
+						upgrades: {},
+					},
+				};
+				['total', 'official', 'custom'].forEach(function(type) {
+					this.data.races[type] = {
+						joined: 0,
+						left: 0,
+						finished: 0,
+						places: {},
+					};
+				}, this);
+				this.data.races.total.crashed = 0;
+				Object.keys(this.data.id).forEach(function(track) {
+					if (!this.data.id[track]) {
+						return;
+					}
+					this.data.tracks[track] = {
+						name: this.data.id[track],
+						joined: 0,
+						finished: 0,
+						places: {},
+						bestTimes: [],
+					}
+				}, this);
 			},
 			processor: function(log) {
-				//TODO
+				//todo: figure out why totals don't match sums
+				//todo: use remaining log types - car upgrades, bets, custom races created, etc
+				//would be nice to have leaves by track, but would have to just calculate it from other totals
+				switch (log.title) {
+					case 'Points racing license':
+						this.data.classes['E'] = log.timestamp;
+						break;
+					case 'Racing class increase':
+						this.data.classes[log.data.new_class] = log.timestamp;
+						break;
+					case 'Company special gain racing points':
+						this.data.totalPoints += log.data.points;
+						break;
+					case 'Racing join custom race':
+						this.data.races.total.joined += 1;
+						this.data.races.custom.joined += 1;
+						this.data.tracks[log.data.track].joined += 1;
+						break;
+					case 'Racing join official race':
+						this.data.races.total.joined += 1;
+						this.data.races.official.joined += 1;
+						this.data.tracks[log.data.track].joined += 1;
+						break;
+					case 'Racing leave custom race':
+						this.data.races.total.left += 1;
+						this.data.races.custom.left += 1;
+						break;
+					case 'Racing leave official race':
+						this.data.races.total.left += 1;
+						this.data.races.official.left += 1;
+						break;
+					case 'Racing finish custom race':
+						this.data.races.total.finished += 1;
+						this.data.races.total.places[log.data.position] = this.data.races.total.places[log.data.position] + 1 || 1;
+						this.data.races.custom.finished += 1;
+						this.data.races.custom.places[log.data.position] = this.data.races.custom.places[log.data.position] + 1 || 1;
+						this.data.tracks[log.data.track].finished += 1;
+						this.data.tracks[log.data.track].places[log.data.position] = this.data.tracks[log.data.track].places[log.data.position] + 1 || 1;
+						break;
+					case 'Racing finish official race':
+						this.data.races.total.finished += 1;
+						this.data.races.total.places[log.data.position] = this.data.races.total.places[log.data.position] + 1 || 1;
+						this.data.races.official.finished += 1;
+						this.data.races.official.places[log.data.position] = this.data.races.official.places[log.data.position] + 1 || 1;
+						this.data.tracks[log.data.track].finished += 1;
+						this.data.tracks[log.data.track].places[log.data.position] = this.data.tracks[log.data.track].places[log.data.position] + 1 || 1;
+						this.data.totalPoints += log.data.points;
+						break;
+					case 'Racing personal best':
+						this.data.tracks[log.data.track].bestTimes.push({
+							'record': log.data.time,
+							'date': log.timestamp,
+							'car': log.data.car,
+						});
+						break;
+					case 'Racing crash':
+						this.data.races.total.crashed += 1;
+						this.data.crashes.cars[log.data.car] = this.data.crashes.cars[log.data.car] + 1 || 1;
+						log.data.upgrades_lost.forEach(function(upgrade) {
+							this.data.crashes.upgrades[upgrade] = this.data.crashes.upgrades[upgrade] + 1 || 1;
+						}, this);
+						break;
+				}
 			},
 			finish: function(output) {
-				
+				if (!this.data.classes['E']) {
+					output('You do not have a racing license.');
+					return;
+				}
+				//todo; also convert timestamps to dates
+				output(this.data);
 			},
 		},
 		wheels: {
