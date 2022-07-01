@@ -13,9 +13,28 @@
 
 'use strict';
 
+/* Create Or Update Sub-Property State for an object that has a property that is an object that has dynamic keys.
+	*obj: the object to access.
+	*outer: the name of the outer property.
+	*inner: the name of the inner property. Omit this to set the value of the outer property (must be `undefined` if using later parameters).
+	*value: the value to set for the inner property. Omit this to increment the value (must be `undefined` if using later parameters).
+	*createOnly: pass `true` to retain the current value if one is present.
+*/
+function cousps(obj, outer, inner, value, createOnly) {
+	//Note: x = x+1 || 1 is a shortcut as undefined+1 = NaN
+	if (inner !== undefined) {
+		if (!obj[outer]) {
+			obj[outer] = {};
+		}
+		obj[outer][inner] = createOnly && obj[outer][inner] ? obj[outer][inner] : value !== undefined ? value : obj[outer][inner] + 1 || 1;
+	} else {
+		obj[outer] = createOnly && obj[outer] ? obj[outer] : value !== undefined ? value : obj[outer] + 1 || 1;
+	}
+}
+
 /* This should be the only function called from the page. It sets `this` appropriately for the requested function.
 	Only use from the program if `this` is required.
-	*func: the name of the function to call within TornLogReader.ui.
+	*func: the name of the function to call within  the `ui` property.
 	*pone (optional): first parameter to pass to the given function.
 	*ptwo (optional): second parameter to pass to the given function.
 	*pthree (optional): third parameter to pass to the given function.
@@ -35,7 +54,7 @@ window.TornAPIReader = {
 	/* Call to initialize data structures on each run of the program. */
 	init: function() {
 		this.runtime = {
-			isRunning: false,// whether the program is currently making requests
+			isRunning: false,// whether the program is currently making requests and/or processing data
 			pending: 0,// number of unresolved requests
 			reachedEnd: false,// whether all logs have been retrieved
 			count: 0,// total number of log lines read
@@ -756,21 +775,12 @@ window.TornAPIReader = {
 		var mostKeys = {};// { length: { title id: count } }
 		var dataTypes = {};// { issue: { title id + key: count } }
 		var logCounts = {};// { count: { id: title } }
-		// Shortcut to add items to above nested object formats
-		function addToObject(obj, outer, inner, value) {
-			if (obj[outer]) {
-				obj[outer][inner] = value ? value : (obj[outer][inner] || 0) + 1;
-			} else {
-				obj[outer] = {};
-				obj[outer][inner] = value ? value : 1;
-			}
-		}
 		
 		Object.keys(logs).forEach(function(hash) {
 			var log = logs[hash];
 			var data = log.data || {};
 			var keyCount = 0;
-			logTypes[log.title] = (logTypes[log.title] || 0) + 1;
+			cousps(logTypes, log.title);
 			Object.keys(data).forEach(function(dataKey) {
 				var dataValue = data[dataKey];
 				var titleAndKey = log.title + ' ' + dataKey;
@@ -779,36 +789,36 @@ window.TornAPIReader = {
 					dataValue = JSON.stringify(dataValue);
 				}
 				if (dataKey.length > keyLengthCutoff) {
-					addToObject(longestKeys, dataKey.length, dataKey);
+					cousps(longestKeys, dataKey.length, dataKey);
 				}
 				//Exclude floats
 				if ((dataValue || '').toString().length > valueLengthCutoff && (typeof dataValue === 'number' ? Math.floor(dataValue) === dataValue : true)) {
 					//Exclude known IDs and long integers
 					if (!((dataKey === 'log' && (dataValue || '').toString().length === 32) || dataKey === 'trade_id' || /^\d{5,10}$/.test(dataValue))) {
-						addToObject(longestValues, (dataValue || '').toString().length, dataValue);
+						cousps(longestValues, (dataValue || '').toString().length, dataValue);
 					}
 				}
 				if (typeof dataValue === 'string' && !isNaN(parseFloat(dataValue, 10)) && parseFloat(dataValue, 10).toString().length === dataValue.length) {
-					addToObject(dataTypes, 'number string', titleAndKey);
+					cousps(dataTypes, 'number string', titleAndKey);
 				} else if (typeof dataValue === 'boolean') {
-					addToObject(dataTypes, 'boolean', titleAndKey);
+					cousps(dataTypes, 'boolean', titleAndKey);
 				} else if (dataValue === undefined) {
-					addToObject(dataTypes, 'undef', titleAndKey);
+					cousps(dataTypes, 'undef', titleAndKey);
 				} else if (dataValue === null && ['8390 opponent'].indexOf(titleAndKey) === -1) {
-					addToObject(dataTypes, 'null', titleAndKey);
+					cousps(dataTypes, 'null', titleAndKey);
 				} else if (dataValue === '') {
-					addToObject(dataTypes, 'empty string', titleAndKey);
+					cousps(dataTypes, 'empty string', titleAndKey);
 				}
 				if (/[^a-z_]/.test(dataKey)) {
-					addToObject(dataTypes, 'weird key', titleAndKey);
+					cousps(dataTypes, 'weird key', titleAndKey);
 				}
 			});
 			if (keyCount > 1 || (keyCount === 0 && log.data)) {
-				addToObject(mostKeys, keyCount, log.title);
+				cousps(mostKeys, keyCount, log.title);
 			}
 		});
 		Object.keys(this.data.torn.logTypes).forEach(function(type) {
-			addToObject(logCounts, logTypes[type] || 0, type, this.data.torn.logTypes[type]);
+			cousps(logCounts, logTypes[type] || 0, type, this.data.torn.logTypes[type]);
 		}, this);
 		//todo: better output. Point out items with highest impact.
 		//todo: could try to watch for things that aren't formatted the same as similar items
@@ -1265,6 +1275,7 @@ window.TornAPIReader = {
 				}).sort(function(a, b) {
 					return compare(a.total, b.total, 'sort') || compare(a.circ, b.circ, 'sort') || compare(a.name, b.name, 'sort', true) || 0;
 				});
+				//todo: give totals excluding items with 0 or 1 owners
 				output([
 					'Own', miscData.totalOwned,
 					'of', miscData.gameItems,
@@ -1290,16 +1301,18 @@ window.TornAPIReader = {
 						cars: {},
 						upgrades: {},
 					},
+					raceIDs: {},
+					lastCrash: null,
 				};
 				['total', 'official', 'custom'].forEach(function(type) {
 					this.data.races[type] = {
 						joined: 0,
 						left: 0,
 						finished: 0,
+						crashed: 0,
 						places: {},
 					};
 				}, this);
-				this.data.races.total.crashed = 0;
 				Object.keys(this.data.id).forEach(function(track) {
 					if (!this.data.id[track]) {
 						return;
@@ -1307,16 +1320,22 @@ window.TornAPIReader = {
 					this.data.tracks[track] = {
 						name: this.data.id[track],
 						joined: 0,
+						left: 0,
 						finished: 0,
+						crashed: 0,
 						places: {},
 						bestTimes: [],
 					}
 				}, this);
 			},
 			processor: function(log) {
-				//todo: figure out why totals don't match sums
 				//todo: use remaining log types - car upgrades, bets, custom races created, etc
-				//would be nice to have leaves by track, but would have to just calculate it from other totals
+				//todo: find if a missing finish is because the race was started recently when logs were pulled
+				//  I guess if first racing category log is a join/car change
+				var raceID = (log.data || {}).race_id;
+				if (log.category === 'Racing' && !raceID) {
+					raceID = 'unknown' + log.timestamp;
+				}
 				switch (log.title) {
 					case 'Points racing license':
 						this.data.classes['E'] = log.timestamp;
@@ -1331,36 +1350,48 @@ window.TornAPIReader = {
 						this.data.races.total.joined += 1;
 						this.data.races.custom.joined += 1;
 						this.data.tracks[log.data.track].joined += 1;
+						cousps(this.data.raceIDs, raceID, 'custom', true);
+						cousps(this.data.raceIDs, raceID, 'join', log.timestamp);
 						break;
 					case 'Racing join official race':
 						this.data.races.total.joined += 1;
 						this.data.races.official.joined += 1;
 						this.data.tracks[log.data.track].joined += 1;
+						cousps(this.data.raceIDs, raceID, 'custom', false);
+						cousps(this.data.raceIDs, raceID, 'join', log.timestamp);
 						break;
 					case 'Racing leave custom race':
 						this.data.races.total.left += 1;
 						this.data.races.custom.left += 1;
+						cousps(this.data.raceIDs, raceID, 'custom', true);
+						cousps(this.data.raceIDs, raceID, 'leave', log.timestamp);
 						break;
 					case 'Racing leave official race':
 						this.data.races.total.left += 1;
 						this.data.races.official.left += 1;
+						cousps(this.data.raceIDs, raceID, 'custom', false);
+						cousps(this.data.raceIDs, raceID, 'leave', log.timestamp);
 						break;
 					case 'Racing finish custom race':
 						this.data.races.total.finished += 1;
-						this.data.races.total.places[log.data.position] = this.data.races.total.places[log.data.position] + 1 || 1;
+						cousps(this.data.races.total.places, log.data.position);
 						this.data.races.custom.finished += 1;
-						this.data.races.custom.places[log.data.position] = this.data.races.custom.places[log.data.position] + 1 || 1;
+						cousps(this.data.races.custom.places, log.data.position);
 						this.data.tracks[log.data.track].finished += 1;
-						this.data.tracks[log.data.track].places[log.data.position] = this.data.tracks[log.data.track].places[log.data.position] + 1 || 1;
+						cousps(this.data.tracks[log.data.track].places, log.data.position);
+						cousps(this.data.raceIDs, raceID, 'custom', true);
+						cousps(this.data.raceIDs, raceID, 'finish', log.timestamp);
 						break;
 					case 'Racing finish official race':
 						this.data.races.total.finished += 1;
-						this.data.races.total.places[log.data.position] = this.data.races.total.places[log.data.position] + 1 || 1;
+						cousps(this.data.races.total.places, log.data.position);
 						this.data.races.official.finished += 1;
-						this.data.races.official.places[log.data.position] = this.data.races.official.places[log.data.position] + 1 || 1;
+						cousps(this.data.races.official.places, log.data.position);
 						this.data.tracks[log.data.track].finished += 1;
-						this.data.tracks[log.data.track].places[log.data.position] = this.data.tracks[log.data.track].places[log.data.position] + 1 || 1;
+						cousps(this.data.tracks[log.data.track].places, log.data.position);
 						this.data.totalPoints += log.data.points;
+						cousps(this.data.raceIDs, raceID, 'custom', false);
+						cousps(this.data.raceIDs, raceID, 'finish', log.timestamp);
 						break;
 					case 'Racing personal best':
 						this.data.tracks[log.data.track].bestTimes.push({
@@ -1371,11 +1402,28 @@ window.TornAPIReader = {
 						break;
 					case 'Racing crash':
 						this.data.races.total.crashed += 1;
-						this.data.crashes.cars[log.data.car] = this.data.crashes.cars[log.data.car] + 1 || 1;
+						cousps(this.data.crashes.cars, log.data.car)
 						log.data.upgrades_lost.forEach(function(upgrade) {
-							this.data.crashes.upgrades[upgrade] = this.data.crashes.upgrades[upgrade] + 1 || 1;
+							cousps(this.data.crashes.upgrades, upgrade);
 						}, this);
+						this.data.lastCrash = log;
 						break;
+				}
+				if (this.data.lastCrash && log.category === 'Racing') {
+					if (log.title === 'Racing join custom race') {
+						this.data.races.custom.crashed += 1;
+						this.data.tracks[log.data.track].crashed += 1;
+						cousps(this.data.raceIDs, raceID, 'crash', log.timestamp);
+						delete this.data.raceIDs['unknown' + this.data.lastCrash.timestamp];
+					} else if (log.title === 'Racing join official race') {
+						this.data.races.official.crashed += 1;
+						this.data.tracks[log.data.track].crashed += 1;
+						cousps(this.data.raceIDs, raceID, 'crash', log.timestamp);
+						delete this.data.raceIDs['unknown' + this.data.lastCrash.timestamp];
+					}
+					if (log.title !== 'Racing crash' && /^Racing (?:join|leave|finish)/.test(log.title)) {
+						this.data.lastCrash = null;
+					}
 				}
 			},
 			finish: function(output) {
@@ -1383,6 +1431,23 @@ window.TornAPIReader = {
 					output('You do not have a racing license.');
 					return;
 				}
+				//Far easier to calculate leaves by track now than to track leaves like crashes
+				var tracks = this.data.tracks;
+				Object.keys(tracks).forEach(function(track) {
+					var trackData = tracks[track];
+					trackData.left = trackData.joined - trackData.finished - trackData.crashed;
+				});
+				var raceIDs = this.data.raceIDs;
+				output('Race IDs missing a start or end event:');
+				output(Object.keys(raceIDs).filter(function(raceID) {
+					var raceData = raceIDs[raceID];
+					return raceID === 'unknown' || !raceData.join || !(raceData.leave || raceData.finish || raceData.crash);
+				}).reduce(function(out, raceId) {
+					var raceData = raceIDs[raceId];
+					return out + (out ? ', ' : '') + raceId + ': ' + JSON.stringify(raceData);
+				}, ''));
+				delete this.data.raceIDs;
+				delete this.data.lastCrash;
 				//todo; also convert timestamps to dates
 				output(this.data);
 			},
@@ -1480,8 +1545,8 @@ window.TornAPIReader = {
 						}
 						if (addValue !== null) {
 							if (oa[base] && wd[base]) {
-								oa[base][addValue] = (oa[base][addValue] || 0) + 1;
-								wd[base][addValue] = (wd[base][addValue] || 0) + 1;
+								cousps(oa[base], addValue);
+								cousps(wd[base], addValue);
 							} else {
 								oa[base + 'Total'] += addValue;
 								wd[base + 'Total'] += addValue;
