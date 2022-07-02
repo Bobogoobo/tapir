@@ -6,12 +6,21 @@
 	######                             ######
 	#########################################
 
+	https://github.com/Bobogoobo/tapir
+
 	Please credit me if using any part of this and do not redistribute this file. I'd rather enhance this version than have forks.
-	For any suggestions, questions, or issues, please mail me in game (not chat) or message me on Discord (I'm verified in the Torn server).
+	For any suggestions, questions, or issues, please create an issue on GitHub or mail me in game (not chat) or message me on Discord (I'm verified in the Torn server).
 	If you do something cool using this, feel free to send me a link!
 */
 
 'use strict';
+
+/* Check whether the given object is empty, if it is an object. Non-plain objects are not treated differently.
+	*obj: the object to check.
+*/
+function isEmptyObject(obj) {
+	return typeof obj === 'object' && obj !== null && !Object.keys(obj).length;
+}
 
 /* Create Or Update Sub-Property State for an object that has a property that is an object that has dynamic keys.
 	*obj: the object to access.
@@ -21,7 +30,7 @@
 	*createOnly: pass `true` to retain the current value if one is present.
 */
 function cousps(obj, outer, inner, value, createOnly) {
-	//Note: x = x+1 || 1 is a shortcut as undefined+1 = NaN
+	//Note: x = x+1 || 1 is a shortcut using undefined+1 = NaN
 	if (inner !== undefined) {
 		if (!obj[outer]) {
 			obj[outer] = {};
@@ -32,7 +41,40 @@ function cousps(obj, outer, inner, value, createOnly) {
 	}
 }
 
-/* This should be the only function called from the page. It sets `this` appropriately for the requested function.
+/* Conditionally compare two values while accounting for one or both being missing. Can be used with sort methods.
+	If either value is falsy (other than 0), returns the other value. If both are, returns null. (When mode is sort, falsy values are treated as lowest by default.)
+	*a: the first value.
+	*b: the second value.
+	*mode: `sort` (returns a value to use in e.g. `Array.sort`), `min` (lower of the two values), or `max` (higher of the two values).
+	*descend: if mode is sort, pass `true` to sort descending, otherwise sort will be ascending.
+	*flipFalse: if mode is sort, pass `true` to reverse the ordering of non-zero falsy values (i.e. they will come last ascending and first descending).
+*/
+function compare(a, b, mode, descend, flipFalse) {
+	//note: array comparisons coerce to string, so don't need to check those
+	var aFalse = (!a && a !== 0) || isEmptyObject(a);
+	var bFalse = (!b && b !== 0) || isEmptyObject(b);
+	if (aFalse && bFalse) {
+		return mode === 'sort' ? 0 : null;
+	}
+	if (aFalse) {
+		return mode === 'sort' ? (-1 * (+!descend || -1) * (+!flipFalse || -1)) : b;
+	}
+	if (bFalse) {
+		return mode === 'sort' ? (1 * (+!descend || -1) * (+!flipFalse || -1)) : a;
+	}
+	if (mode === 'max' || mode === 'min') {
+		return Math[mode](a, b);
+	} else if (mode === 'sort') {
+		if (descend) {
+			return a < b ? 1 : a > b ? -1 : 0;
+		} else {
+			return a > b ? 1 : a < b ? -1 : 0;
+		}
+	}
+	return mode === 'sort' ? 0 : undefined;
+}
+
+/* This should be the only function called from HTML. It sets `this` appropriately for the requested function.
 	Only use from the program if `this` is required.
 	*func: the name of the function to call within  the `ui` property.
 	*pone (optional): first parameter to pass to the given function.
@@ -508,7 +550,7 @@ window.TornAPIReader = {
 					}
 					dataStaging.data[datumName] = datum;
 				}, this);
-				if (!Object.keys(dataStaging.data).length) {
+				if (isEmptyObject(dataStaging.data)) {
 					delete dataStaging.data;
 				}
 				if (this.config.saveLogs) {
@@ -640,7 +682,7 @@ window.TornAPIReader = {
 		}, this);
 		this.config.useStored = useStored;
 		if (!this.config.useStored) {
-			if (limit && Object.keys(limit).length) {
+			if (!isEmptyObject(limit)) {
 				if (limit.count >= 0 && limit.count !== null) {
 					this.config.limitCount = limit.count;
 				}
@@ -682,7 +724,7 @@ window.TornAPIReader = {
 					: ' No limits set.'
 				)
 			]);
-		} else if (!Object.keys(this.data.logs).length) {
+		} else if (isEmptyObject(this.data.logs)) {
 			this.ui.putlog('Stopping. No stored logs found. If you have refreshed the page, submit the file again.', 'error');
 			return;
 		}
@@ -762,7 +804,7 @@ window.TornAPIReader = {
 	analyzeLogs: function(logs) {
 		this.runtime.isRunning = true;
 		logs = logs || this.data.logs;
-		if (!logs || !Object.keys(logs).length) {
+		if (!logs || isEmptyObject(logs)) {
 			this.ui.putlog('No logs to analyze.', 'warning');
 			this.runtime.isRunning = false;
 			return;
@@ -919,7 +961,7 @@ window.TornAPIReader = {
 				Must be specified when called from the program and unspecified when called from the interface.
 		*/
 		displayLogs: function(spaced) {
-			if (!Object.keys(this.data.logs || {}).length) {
+			if (isEmptyObject(this.data.logs || {})) {
 				return;
 			}
 			var ta = document.getElementById('log-download');
@@ -1196,28 +1238,6 @@ window.TornAPIReader = {
 				//todo: track item input and output, total and from/to where. And anything else interesting from the log
 			},
 			finish: function(output) {
-				function compare(a, b, mode, asc) {
-					if (!a && !b) {
-						return mode === 'sort' ? 0 : null;
-					}
-					if (!a) {
-						return mode === 'sort' ? 1 : b;
-					}
-					if (!b) {
-						return mode === 'sort' ? -1 : a;
-					}
-					if (mode === 'max' || mode === 'min') {
-						return Math[mode](a, b);
-					} else if (mode === 'sort') {
-						if (asc) {
-							return a - b || (a > b ? 1 : (a < b ? -1 : 0));// ascending
-						} else {
-							return b - a || (a < b ? 1 : (a > b ? -1 : 0));// descending
-						}
-					}
-					return mode === 'sort' ? 0 : undefined;
-				}
-
 				var miscData = this.data;
 				var unowned = this.data.unowned;
 				var extra = this.data.extra;
@@ -1235,16 +1255,16 @@ window.TornAPIReader = {
 						data.quantity = 0;
 						unowned[item] = {
 							name: data.name,
-							buy: data.buy_price,
-							market: data.market_value,
+							buy: data.buy_price || null,
+							market: data.market_value || null,
 							circulation: data.circulation,
 						};
 					} else if (data.quantity > 1) {
 						extra[item] = {
 							name: data.name,
 							quantity: data.quantity,
-							sell: data.sell_price,
-							market: data.market_value,
+							sell: data.sell_price || null,
+							market: data.market_value || null,
 							circulation: data.circulation,
 						};
 					}
@@ -1259,12 +1279,12 @@ window.TornAPIReader = {
 						circ: unowned[item].circulation,
 					};
 				}).sort(function(a, b) {
-					return compare(a.cost, b.cost, 'sort', true) || compare(a.circ, b.circ, 'sort') || compare(a.name, b.name, 'sort', true) || 0;
+					return compare(a.cost, b.cost, 'sort', false, true) || compare(a.circ, b.circ, 'sort', true) || compare(a.name, b.name, 'sort') || 0;
 				});
 				var valuableExtra = Object.keys(extra).map(function(item) {
 					var value = compare(extra[item].sell, extra[item].market, 'max');
-					var totalValue = (value || 0) * (extra[item].quantity - 1);
-					miscData.totalLiquid += totalValue;
+					var totalValue = value * (extra[item].quantity - 1) || null;
+					miscData.totalLiquid += totalValue || 0;
 					return {
 						name: extra[item].name,
 						total: totalValue,
@@ -1273,14 +1293,14 @@ window.TornAPIReader = {
 						circ: extra[item].circulation,
 					};
 				}).sort(function(a, b) {
-					return compare(a.total, b.total, 'sort') || compare(a.circ, b.circ, 'sort') || compare(a.name, b.name, 'sort', true) || 0;
+					return compare(a.total, b.total, 'sort', true, true) || compare(a.circ, b.circ, 'sort') || compare(a.name, b.name, 'sort') || 0;
 				});
 				//todo: give totals excluding items with 0 or 1 owners
 				output([
 					'Own', miscData.totalOwned,
 					'of', miscData.gameItems,
 					'game items (' + (miscData.totalOwned / miscData.gameItems * 100).toFixed(2) + '%) with',
-					miscData.totalLiquid.toLocaleString(), 'total liquidity. (Values exclude keeping one of each item.)'
+					'$' + miscData.totalLiquid.toLocaleString(), 'total liquidity. (Values exclude keeping one of each item.)'
 				]);
 				//todo
 				output({ 'Most valuable stacks of extra items': valuableExtra });
@@ -1325,7 +1345,7 @@ window.TornAPIReader = {
 						crashed: 0,
 						places: {},
 						bestTimes: [],
-					}
+					};
 				}, this);
 			},
 			processor: function(log) {
@@ -1402,7 +1422,7 @@ window.TornAPIReader = {
 						break;
 					case 'Racing crash':
 						this.data.races.total.crashed += 1;
-						cousps(this.data.crashes.cars, log.data.car)
+						cousps(this.data.crashes.cars, log.data.car);
 						log.data.upgrades_lost.forEach(function(upgrade) {
 							cousps(this.data.crashes.upgrades, upgrade);
 						}, this);

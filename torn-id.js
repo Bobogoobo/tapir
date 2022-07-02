@@ -1,10 +1,10 @@
 /* Contains IDs used by the Torn API that are not available from an endpoint.
 	Must be parsed after the main file.
 	Keys should be lowercase and singular, sorted alphabetically.
-	Null any missing entries; double quote all strings.
+	Null any missing entries to maintain sequence; double quote all strings.
 */
 window.TornAPIReader.logIDs.torn = {
-	/* id: description, category, [sub-category] */
+	/* id: [description, category, (sub-category)] */
 	crime: {
 		1: ["Search the Train Station", "Search for Cash"],
 		2: ["Search Under the Old Bridge", "Search for Cash"],
@@ -93,6 +93,7 @@ window.TornAPIReader.logIDs.torn = {
 		85: ["Hack into a Bank Mainframe", "Hacking"],
 		86: ["Hack the F.B.I. Mainframe", "Hacking"],// corrected punctuation
 	},
+	/* id: name */
 	racetrack: {
 		1: null,
 		2: null,
