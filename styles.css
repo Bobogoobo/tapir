@@ -25,6 +25,19 @@ textarea[readonly] {
 	background-color: #EEEEEE;
 }
 
+.icon {
+	font-weight: bold;
+	padding: 0 0.25em;
+}
+
+.valid {
+	color: green;
+}
+
+.error {
+	color: red;
+}
+
 .engage {
 	font-weight: bold;
 }
@@ -37,6 +50,18 @@ textarea[readonly] {
 	display: none;
 }
 
+.image-right {
+	float: right;
+}
+
+.caption {
+	display: inline-block;
+	font-size: 90%;
+	font-style: italic;
+	text-align: center;
+	width: 100%;
+}
+
 #routines-container {
 	display: inline-block;
 }
@@ -44,6 +69,7 @@ textarea[readonly] {
 #routines-collapsible {
 	border: solid #BBBBBB;
 	border-width: 0 1px 1px;
+	margin-bottom: 0.5em;
 	padding: 0.25em 1em;
 }
 

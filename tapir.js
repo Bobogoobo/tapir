@@ -87,12 +87,17 @@ function compare(a, b, mode, descend, flipFalse) {
 }
 
 /* Set multiple attributes on an Element at once. Returns the element.
+	The following special names will be set directly as properties: innerHTML.
 	*el: the Element to use.
 	*attrs: an object of the attributes and values to set.
 */
 function setAttributes(el, attrs) {
 	Object.keys(attrs).forEach(function(attr) {
-		el.setAttribute(attr, attrs[attr]);
+		if (attr === 'innerHTML') {
+			el[attr] = attrs[attr];
+		} else {
+			el.setAttribute(attr, attrs[attr]);
+		}
 	});
 	return el;
 }
@@ -680,7 +685,6 @@ window.TornAPIReader = {
 			modules = Object.keys(this.routines);
 		}
 		this.config.modules = modules.filter(function(modus) {
-			modus = modus.trim();
 			if (!modus) {
 				return false;
 			}
@@ -905,7 +909,7 @@ window.TornAPIReader = {
 		/* Called when the page is loaded to modify the page as needed for any dynamic information. */
 		load: function() {
 			var self = window.TornAPIReader;
-			//Insert list of available routines
+			//Insert interactive list of available routines
 			var routinesList = document.getElementById('routines-list');
 			try {
 				routinesList.textContent = '\n';
@@ -933,7 +937,7 @@ window.TornAPIReader = {
 						*isChecked: the checked state of the checkbox
 					*/
 					function updateText(routine, isChecked) {
-						var currentList = listText.value.replace(/\s/g, '').toLowerCase().split(',');
+						var currentList = listText.value.replace(/\s/g, '').split(',');
 						if (isChecked && currentList.indexOf(routine) === -1) {
 							currentList.push(routine);
 						} else if (!isChecked && currentList.indexOf(routine) !== -1) {
@@ -995,7 +999,7 @@ window.TornAPIReader = {
 				this.ui.putlog('Stopping. API key is required.', 'error');
 				return;
 			}
-			routines = routines.split(',');
+			routines = routines.replace(/\s/g, '').split(',');
 			if (isNaN(limitCount) || limitCount < 0) {
 				this.ui.putlog('Stopping. Limit count must be a number, zero or greater.', 'error');
 				return;
@@ -1104,7 +1108,7 @@ window.TornAPIReader = {
 		},
 		/* Toggles the collapsed state of the given element.
 			*id: the id attribute of a collapsible element.
-			*btn: the button that called the toggle.
+			*btn: the button that called the toggle (pass `this`).
 		*/
 		toggle: function(id, btn) {
 			var el = document.getElementById(id);
@@ -1116,6 +1120,30 @@ window.TornAPIReader = {
 			var btnText = ['Hide', 'Show'];
 			btn.textContent = btn.textContent.replace(btnText[+!isCollapsed], btnText[+isCollapsed]);
 		},
+		/* Copies the content of the log download panel to the clipboard.
+			*btn: the button that was clicked (pass `this`).
+		*/
+		copyLogs: function(btn) {
+			var success = false;
+			var icon = btn.getElementsByClassName('icon')[0];
+			if (icon) {
+				icon.remove();
+			}
+			//todo: writeText returns a promise
+			try {
+				navigator.clipboard.writeText(document.getElementById('log-download').value);
+				success = true;
+			} catch (err) {
+				console.log(err);
+			}
+			btn.appendChild(
+				setAttributes(document.createElement('span'), {
+					'class': 'icon ' + (success ? 'valid' : 'error'),
+					innerHTML: success ? '&check;' : '&cross;',
+					title: success ? 'Copied to clipboard!' : 'Sorry, your browser does not support current clipboard methods.',
+				})
+			);
+		},
 		/* Clears the program logging panel. */
 		clearLog: function() {
 			document.getElementById('logging').value = '';
@@ -1126,7 +1154,7 @@ window.TornAPIReader = {
 		},
 	},
 	/* This holds all the modules for tracking different data points in the log.
-		The key should be a short identifier. All lowercase alphabetical names are recommended to avoid user errors. Please keep them alphabetized.
+		The key should be a short identifier and using only lowercase letters is recommended. Please keep them alphabetized.
 		Each routine:
 			MUST contain a brief string keyed `description` summarizing what the routine does, double quoted.
 			MAY contain a function keyed `processor`, which will be passed each log line and its hash.
@@ -1718,7 +1746,7 @@ window.TornAPIReader = {
 				output(this.data.wheels);
 			},
 		},
-		/* Template for new routines (remove any parts or variables you're not using):
+		/* Template for new routines (remove any properties or parameters you're not using):
 
 		name: {
 			wip: true,

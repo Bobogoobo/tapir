@@ -9,7 +9,12 @@
 	<link href="styles.css" rel="stylesheet" />
 </head>
 <body>
-	<h2>Torn API Reader (TAPIR) by Bobogoobo [<a href="https://www.torn.com/profiles.php?XID=2618206">2618206</a>]</h2>
+	<div class="image-right" style="width:20%;">
+		<img src="images/Tapirus_pinchaque_portrait.jpg" alt="mountain tapir" style="width:100%; max-width:640px;" />
+		<br />
+		<span class="caption"><a href="https://commons.wikimedia.org/wiki/File:Tapirus_pinchaque_portrait.jpg">Source</a> (David Sifry), resized</span>
+	</div>
+	<h1>Torn API Reader (TAPIR) by Bobogoobo [<a href="https://www.torn.com/profiles.php?XID=2618206">2618206</a>]</h1>
 	<p>Designed primarily to parse and analyze your activity log for interesting statistics, but also capable of any other API stat tracking.</p>
 	<p>
 		For any suggestions, questions, or issues, please<!-- use the <a href="https://github.com/Bobogoobo/tapir/issues">issue tracker</a> or--> mail me in game (not chat) or message me on Discord (I'm verified in the Torn server). No item is too insignificant.
@@ -23,6 +28,7 @@
 	<p>Last updated: 2022-07-10 - WIP.</p>
 	<p>Don't play Torn? <a href="https://www.torn.com/2618206">Check it out here</a>.</p>
 	<hr />
+	<h2>Log Information Parser (TAPIR LIP)</h2>
 	<div id="input">
 		<form>
 			<h3>Required fields</h3>
@@ -142,6 +148,7 @@
 			<textarea id="logging" rows="30" readonly="readonly" spellcheck="false" autocomplete="off">Welcome to TAPIR!</textarea>
 		</div><div>
 			<label for="log-download">Torn Logs:</label>
+			<button type="button" onclick="TAPIR('copyLogs', this);">Copy to Clipboard</button><!--displays last due to float-->
 			<button type="button" onclick="TAPIR('displayLogs');">Toggle Log Spacing</button>
 			<br />
 			<textarea id="log-download" rows="30" readonly="readonly" spellcheck="false" autocomplete="off" data-spaced="false"></textarea>
