@@ -22,6 +22,18 @@ function isEmptyObject(obj) {
 	return typeof obj === 'object' && obj !== null && !Object.keys(obj).length;
 }
 
+/* Very simple conversion of an array-like object to an array (e.g. HTMLCollection).
+	*arrayLike: the object to convert to an array.
+*/
+function arrayFrom(arrayLike) {
+	if (!arrayLike.length) { return undefined; }
+	var arr = [];
+	for (var item = 0; item < arrayLike.length; item++) {
+		arr.push(arrayLike[item]);
+	}
+	return arr;
+}
+
 /* Create Or Update Sub-Property State for an object that has a property that is an object that has dynamic keys.
 	*obj: the object to access.
 	*outer: the name of the outer property.
@@ -74,8 +86,19 @@ function compare(a, b, mode, descend, flipFalse) {
 	return mode === 'sort' ? 0 : undefined;
 }
 
+/* Set multiple attributes on an Element at once. Returns the element.
+	*el: the Element to use.
+	*attrs: an object of the attributes and values to set.
+*/
+function setAttributes(el, attrs) {
+	Object.keys(attrs).forEach(function(attr) {
+		el.setAttribute(attr, attrs[attr]);
+	});
+	return el;
+}
+
 /* This should be the only function called from HTML. It sets `this` appropriately for the requested function.
-	Only use from the program if `this` is required.
+	Only use from the program if `this` is required and different from the automatic context.
 	*func: the name of the function to call within  the `ui` property.
 	*pone (optional): first parameter to pass to the given function.
 	*ptwo (optional): second parameter to pass to the given function.
@@ -879,7 +902,71 @@ window.TornAPIReader = {
 	},
 	/* Contains functions called by the user interface, or called by the program to interact with the interface. (Ordered by frequency/importance of use.) */
 	ui: {
-		/* Called to begin execution of the program given user input from forms on the page, which is formatted here.
+		/* Called when the page is loaded to modify the page as needed for any dynamic information. */
+		load: function() {
+			var self = window.TornAPIReader;
+			//Insert list of available routines
+			var routinesList = document.getElementById('routines-list');
+			try {
+				routinesList.textContent = '\n';
+				Object.keys(self.routines).forEach(function(routine) {
+					var iswip = !!self.routines[routine].wip;
+					routinesList.appendChild(
+						document.createElement('label')
+					).appendChild(
+						setAttributes(document.createElement('input'), {
+							type: 'checkbox',
+							name: routine,
+							'data-wip': iswip,
+						})
+					).parentNode.appendChild(
+						document.createTextNode(routine + (iswip ? ' (WIP)' : '') + ': ' + self.routines[routine].description)
+					);
+					routinesList.appendChild(document.createTextNode('\n'));
+				});
+				document.getElementById('routines-collapsible').addEventListener('change', function(evt) {
+					var type = evt.target.type, name = evt.target.name, value;
+					var listText = document.getElementById('routines');
+					
+					/* Updates the text input list of selected routines based on the given checkbox's state.
+						*routine: the name of the routine (checkbox value)
+						*isChecked: the checked state of the checkbox
+					*/
+					function updateText(routine, isChecked) {
+						var currentList = listText.value.replace(/\s/g, '').toLowerCase().split(',');
+						if (isChecked && currentList.indexOf(routine) === -1) {
+							currentList.push(routine);
+						} else if (!isChecked && currentList.indexOf(routine) !== -1) {
+							currentList.splice(currentList.indexOf(routine), 1);
+						}
+						listText.value = currentList.filter(function(r) { return r !== ''; }).join(', ');
+						//note: listener inefficiently updates value on every item regardless of whether it was changed
+					}
+
+					if (type === 'radio') {
+						value = evt.target.value;
+						if (value !== 'custom') {
+							listText.value = '';
+							arrayFrom(routinesList.getElementsByTagName('input')).forEach(function(cb) {
+								if (value === 'all' && !cb.checked && !(cb.dataset.wip === 'true')) {
+									cb.checked = true;
+								} else if (value === 'none' && cb.checked) {
+									cb.checked = false;
+								}
+								updateText(cb.name, cb.checked);
+							});
+						}
+					} else if (type === 'checkbox') {
+						document.getElementById('routine-selection-custom').checked = true;
+						value = evt.target.checked;
+						updateText(name, value);
+					}
+				});
+			} catch (err) {
+				routinesList.textContent = 'There was an error listing routines: ' + err.toString();
+			}
+		},
+		/* Begins execution of the program given user input from forms on the page, which is formatted here.
 			*useStored: whether to run the program using log data already stored in the program.
 		*/
 		setup: function(useStored) {
@@ -1015,10 +1102,25 @@ window.TornAPIReader = {
 			}
 			document.getElementById('logging').value += out;
 		},
+		/* Toggles the collapsed state of the given element.
+			*id: the id attribute of a collapsible element.
+			*btn: the button that called the toggle.
+		*/
+		toggle: function(id, btn) {
+			var el = document.getElementById(id);
+			var classes = el.classList;
+			if (!classes.contains('collapsible')) {
+				return;
+			}
+			var isCollapsed = classes.toggle('collapsed');
+			var btnText = ['Hide', 'Show'];
+			btn.textContent = btn.textContent.replace(btnText[+!isCollapsed], btnText[+isCollapsed]);
+		},
+		/* Clears the program logging panel. */
 		clearLog: function() {
 			document.getElementById('logging').value = '';
 		},
-		/* Called to run log metadata analysis. */
+		/* Runs log metadata analysis. */
 		analyze: function() {
 			this.analyzeLogs();
 		},
@@ -1634,3 +1736,4 @@ window.TornAPIReader = {
 		*/
 	},
 };
+window.addEventListener('load', window.TornAPIReader.ui.load);

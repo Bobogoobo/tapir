@@ -20,7 +20,7 @@
 	</p>
 	<p>Your API key will not be stored except in temporary browser memory only while the program is running. It will not be transmitted except to the Torn API, over a secure connection.</p>
 	<p>Disclaimer: this tool is in beta. Customized log formats are subject to change. You accept responsibility for any damages incurred while using this tool.</p>
-	<p>Last updated: 2022-06-26 - WIP.</p>
+	<p>Last updated: 2022-07-10 - WIP.</p>
 	<p>Don't play Torn? <a href="https://www.torn.com/2618206">Check it out here</a>.</p>
 	<hr />
 	<div id="input">
@@ -37,10 +37,33 @@
 				Store logs to download when done (<b>highly recommended for a full run</b>).
 			</label>
 			<br />
-			<label>
-				Select routines to run, comma-separated, or enter "ALL" without quotes, or leave blank for none:
-				<input id="routines" type="text" size="50" />
-			</label>
+			<div id="routines-container">
+				<label>
+					Select routines to run, comma-separated, or enter "ALL" without quotes, or leave blank for none:
+					<input id="routines" type="text" size="50" />
+				</label>
+				<button class="toggle" type="button" onclick="TAPIR('toggle', 'routines-collapsible', this)">Show list of routines</button>
+				<div id="routines-collapsible" class="collapsible collapsed">
+					<fieldset>
+						Select:
+						<label>
+							<input type="radio" name="routine-selection" value="all">
+							All
+						</label>
+						<label>
+							<input type="radio" name="routine-selection" value="none">
+							None
+						</label>
+						<label>
+							<input type="radio" name="routine-selection" value="custom" id="routine-selection-custom" checked="checked">
+							Custom
+						</label>
+					</fieldset>
+					<div id="routines-list">Loading list of routines...</div>
+					<br />
+					Routines marked WIP may be broken or do nothing. They will not be included if running "ALL".
+				</div>
+			</div>
 			<br />
 			<label>
 				<input id="progress-check" type="number" min="-1" max="100" value="10" />
@@ -53,7 +76,7 @@
 				Choose saved log file:
 				<input id="log-file" type="file" accept=".txt,.json" />
 			</label>
-			<button class="submit" type="button" onclick="TAPIR('readFile');">Submit</button>
+			<button type="button" onclick="TAPIR('readFile');">Submit</button>
 			<br />
 			<label>
 				<input id="request-rate" type="number" min="0" max="1.66" step="0.05" value="1" />
