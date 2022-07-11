@@ -94,6 +94,14 @@ window.TornAPIReader.logIDs.torn = {
 		86: ["Hack the F.B.I. Mainframe", "Hacking"],// corrected punctuation
 	},
 	/* id: name */
+	gymstage: {
+		0: 'Other',
+		1: 'Lightweight',
+		2: 'Middleweight',
+		3: 'Heavyweight',
+		4: 'Specialist',
+	},
+	/* id: name */
 	racetrack: {
 		1: null,
 		2: null,

@@ -1199,20 +1199,21 @@ window.TornAPIReader = {
 				};
 			},
 			processor: function(log) {
-				if (log.category === 'Captcha') {
-					var type = this.data.id[log.data.type];
-					if (!this.data.types[type]) {
-						this.data.types[type] = { 'total': 0, 'success': 0, 'failure': 0 };
-					}
-					this.data.count.total += 1;
-					this.data.types[type].total += 1;
-					if (log.title === 'Captcha validation success') {
-						this.data.count.success += 1;
-						this.data.types[type].success += 1;
-					} else if (log.title === 'Captcha validation failure') {
-						this.data.count.failure += 1;
-						this.data.types[type].failure += 1;
-					}
+				if (log.category !== 'Captcha') {
+					return;
+				}
+				var type = this.data.id[log.data.type];
+				if (!this.data.types[type]) {
+					this.data.types[type] = { 'total': 0, 'success': 0, 'failure': 0 };
+				}
+				this.data.count.total += 1;
+				this.data.types[type].total += 1;
+				if (log.title === 'Captcha validation success') {
+					this.data.count.success += 1;
+					this.data.types[type].success += 1;
+				} else if (log.title === 'Captcha validation failure') {
+					this.data.count.failure += 1;
+					this.data.types[type].failure += 1;
 				}
 			},
 			finish: function(output) {
@@ -1230,6 +1231,7 @@ window.TornAPIReader = {
 					id: ids.torn.crime,
 					count: {},
 					undone: [],
+					nerveSpent: 0,
 				};
 				Object.keys(this.data.id).forEach(function(crime) {
 					var crimeData = this.data.id[crime];
@@ -1238,6 +1240,7 @@ window.TornAPIReader = {
 						category: crimeData[1],
 						subcat: crimeData[2] || null,
 						nerve: null,
+						nerveTotal: 0,
 						total: 0,
 						success: 0,
 						fail: 0,
@@ -1255,51 +1258,52 @@ window.TornAPIReader = {
 			processor: function(log) {
 				//todo: don't have crime success casino token gain (5735) or points gain (5730)
 				//  need to add property to count when needed
-				if (log.category === 'Crimes') {
-					var crime = log.data.crime;
-					var data = this.data.count[crime];
-					if (!data.nerve) {
-						data.nerve = log.data.nerve;
-					}
-					data.total += 1;
-					switch (log.title) {
-						case 'Crime fail':
-							data.fail += 1;
-							break;
-						case 'Crime fail jail':
-							data.jail += 1;
-							data.jailTime += log.data.jail_time_increased;
-							break;
-						case 'Crime fail hospital':
-							data.hospital += 1;
-							data.hospTime += log.data.hospital_time_increased;
-							break;
-						case 'Crime fail money loss':
-							data.failMoney += 1;
-							data.moneyLost += log.data.money_lost;
-							break;
-						case 'Crime success money gain':
-							data.success += 1;
-							data.moneyGained += log.data.money_gained;
-							break;
-						case 'Crime success item gain':
-							data.success += 1;
-							if (data.itemsGained[log.data.item_gained]) {
-								data.itemsGained[log.data.item_gained].count += 1;
-							} else {
-								data.itemsGained[log.data.item_gained] = {
-									name: null,
-									count: 1,
-									value: null,
-									totalValue: null,
-								};
-							}
-							break;
-						case 'Crime success points gain':
-							break;
-						case 'Crime success casino token gain':
-							break;
-					}
+				if (log.category !== 'Crimes') {
+					return;
+				}
+				var crime = log.data.crime;
+				var data = this.data.count[crime];
+				if (!data.nerve) {
+					data.nerve = log.data.nerve;
+				}
+				data.total += 1;
+				switch (log.title) {
+					case 'Crime fail':
+						data.fail += 1;
+						break;
+					case 'Crime fail jail':
+						data.jail += 1;
+						data.jailTime += log.data.jail_time_increased;
+						break;
+					case 'Crime fail hospital':
+						data.hospital += 1;
+						data.hospTime += log.data.hospital_time_increased;
+						break;
+					case 'Crime fail money loss':
+						data.failMoney += 1;
+						data.moneyLost += log.data.money_lost;
+						break;
+					case 'Crime success money gain':
+						data.success += 1;
+						data.moneyGained += log.data.money_gained;
+						break;
+					case 'Crime success item gain':
+						data.success += 1;
+						if (data.itemsGained[log.data.item_gained]) {
+							data.itemsGained[log.data.item_gained].count += 1;
+						} else {
+							data.itemsGained[log.data.item_gained] = {
+								name: null,
+								count: 1,
+								value: null,
+								totalValue: null,
+							};
+						}
+						break;
+					case 'Crime success points gain':
+						break;
+					case 'Crime success casino token gain':
+						break;
 				}
 			},
 			finish: function(output) {
@@ -1314,12 +1318,15 @@ window.TornAPIReader = {
 						itemData.totalValue = itemData.value * itemData.count;
 					});
 					if (crimeData.total) {
+						crimeData.nerveTotal = crimeData.nerve * crimeData.total;
+						this.data.nerveSpent += crimeData.nerveTotal;
 						output(crimeData);
 					} else {
 						//todo: formatting
 						this.data.undone.push([crimeData.desc, crimeData.category, crimeData.subcat]);
 					}
 				}, this);
+				output('Total nerve spent on crimes: ' + this.data.nerveSpent.toLocaleString());
 				output('Crimes not done:');
 				output(this.data.undone);
 			},
@@ -1336,6 +1343,100 @@ window.TornAPIReader = {
 			},
 			finish: function(output) {
 				
+			},
+		},
+		gym: {
+			description: "Gets stats on the player's time in the gym.",
+			require: ['torn.gyms'],
+			data: {},
+			init: function(ids) {
+				this.data = {
+					id: {
+						stats: ids.custom.combatstat,
+						stage: ids.torn.gymstage,
+					},
+					gyms: {},
+					switches: [],
+					totalTrains: {},
+					totalGains: {},
+					energySpent: 0,
+					happySpent: 0,
+					moneySpent: 0,
+					blank: [],
+				};
+				var data = this.data;
+				data.blank = data.id.stats.map(function(stat) {
+					return stat || 'total';
+				});
+				data.blank.forEach(function(stat) {
+					data.totalTrains[stat] = 0;
+					data.totalGains[stat] = 0;
+				});
+			},
+			processor: function(log) {
+				//todo: whatever the "gym train addict" log type has, add it to stats as appropriate
+				//todo: many more stats possible
+				if (log.category !== 'Gym') {
+					return;
+				}
+				var stat;
+				var data = this.data;
+				var gym = log.data.gym;
+				var gymData = data.gyms[gym];
+				if (!gymData) {
+					data.gyms[gym] = {
+						name: null,
+						stage: null,
+						unlocked: null,
+						trains: {},
+						gains: {},
+						energy: 0,
+						happy: 0,
+					};
+					gymData = data.gyms[gym];
+					data.blank.forEach(function(stat) {
+						gymData.trains[stat] = 0;
+						gymData.gains[stat] = 0;
+					});
+				}
+				if (/^Gym train (?!addict)/.test(log.title)) {
+					stat = data.id.stats[log.data.stat];
+					data.energySpent += log.data.energy_used;
+					gymData.energy += log.data.energy_used;
+					data.happySpent += log.data.happy_used;
+					gymData.happy += log.data.happy_used;
+					data.totalTrains.total += log.data.trains;
+					data.totalTrains[stat] += log.data.trains;
+					gymData.trains.total += log.data.trains;
+					gymData.trains[stat] += log.data.trains;
+					data.totalGains.total += log.data.increased;
+					data.totalGains[stat] += log.data.increased;
+					gymData.gains.total += log.data.increased;
+					gymData.gains[stat] += log.data.increased;
+				} else if (log.title === 'Gym purchase') {
+					//todo: convert timestamp to date
+					gymData.unlocked = log.timestamp;
+					data.moneySpent += log.data.cost;
+				} else if (log.title === 'Gym activate') {
+					data.switches.push([log.timestamp, log.data.gym]);
+				} else {// addict
+					
+				}
+			},
+			finish: function(output) {
+				var tornData = this.data.torn.torn.gyms;
+				var gymData = this.data.gyms;
+				var stages = this.data.id.stage;
+				delete this.data.blank;
+				Object.keys(tornData).forEach(function(gym) {
+					if (!gymData[gym]) {
+						return;
+					}
+					gymData[gym].name = tornData[gym].name;
+					gymData[gym].stage = stages[tornData[gym].stage];
+				});
+				//todo
+				output(this.data);
 			},
 		},
 		/* Builds a list of other players with whom the player has interacted in any way, sorted by most frequent.
@@ -1643,69 +1744,70 @@ window.TornAPIReader = {
 				//todo: for consistency and wedge tracking, money should be broken out like cost
 				//check for any other wedges that need to be separated
 				//todo: can check current points market value I guess (market.pointsmarket), kind of negligible difference
-				if (log.category === 'Casino' && /^Casino spin the wheel/.test(log.title)) {
-					var cat = log.title.replace('Casino spin the wheel ', '');
-					var d = log.data;
-					var oa = this.data.wheels.overall;
-					var wd = this.data.wheels[this.data.id[d.wheel]];
-					var base = '';
-					var addValue = null;
-					switch (cat) {
-						case 'start':
-							base = 'cost';
-							addValue = d.cost;
-							oa.total += 1;
-							wd.total += 1;
-							//special case
-							oa.costTotal += d.cost;
-							wd.costTotal += d.cost;
-							break;
-						case 'free spin':
-							base = 'free';
-							break;
-						case 'lose':
-							base = 'lose';
-							break;
-						case 'hospital':
-							base = 'hosp';
-							addValue = d.hospital_time_increased;
-							break;
-						case 'win money':
-							base = 'money';
-							addValue = d.money;
-							break;
-						case 'win points':
-							base = 'points';
-							addValue = d.points;
-							break;
-						case 'win casino tokens':
-							base = 'tokens';
-							addValue = d.tokens;
-							break;
-						case 'win item':
-							base = 'item';
-							addValue = d.item;
-							break;
-						case 'win property':
-							base = 'property';
-							addValue = d.property;
-							break;
+				if (log.category !== 'Casino' || !/^Casino spin the wheel/.test(log.title)) {
+					return;
+				}
+				var cat = log.title.replace('Casino spin the wheel ', '');
+				var d = log.data;
+				var oa = this.data.wheels.overall;
+				var wd = this.data.wheels[this.data.id[d.wheel]];
+				var base = '';
+				var addValue = null;
+				switch (cat) {
+					case 'start':
+						base = 'cost';
+						addValue = d.cost;
+						oa.total += 1;
+						wd.total += 1;
+						//special case
+						oa.costTotal += d.cost;
+						wd.costTotal += d.cost;
+						break;
+					case 'free spin':
+						base = 'free';
+						break;
+					case 'lose':
+						base = 'lose';
+						break;
+					case 'hospital':
+						base = 'hosp';
+						addValue = d.hospital_time_increased;
+						break;
+					case 'win money':
+						base = 'money';
+						addValue = d.money;
+						break;
+					case 'win points':
+						base = 'points';
+						addValue = d.points;
+						break;
+					case 'win casino tokens':
+						base = 'tokens';
+						addValue = d.tokens;
+						break;
+					case 'win item':
+						base = 'item';
+						addValue = d.item;
+						break;
+					case 'win property':
+						base = 'property';
+						addValue = d.property;
+						break;
+				}
+				if (cat === 'honor bar') {
+					oa.honors[d.wheel - 1] = true;
+				} else {
+					if (cat !== 'start') {
+						oa[base + 'Count'] += 1;
+						wd[base + 'Count'] += 1;
 					}
-					if (cat === 'honor bar') {
-						oa.honors[d.wheel - 1] = true;
-					} else {
-						if (cat !== 'start') {
-							oa[base + 'Count'] += 1;
-							wd[base + 'Count'] += 1;
-						}
-						if (addValue !== null) {
-							if (oa[base] && wd[base]) {
-								cousps(oa[base], addValue);
-								cousps(wd[base], addValue);
-							} else {
-								oa[base + 'Total'] += addValue;
-								wd[base + 'Total'] += addValue;
-							}
+					if (addValue !== null) {
+						if (oa[base] && wd[base]) {
+							cousps(oa[base], addValue);
+							cousps(wd[base], addValue);
+						} else {
+							oa[base + 'Total'] += addValue;
+							wd[base + 'Total'] += addValue;
 						}
 					}
 				}
