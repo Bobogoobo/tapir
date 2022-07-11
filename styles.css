@@ -79,6 +79,10 @@ textarea[readonly] {
 	padding-bottom: 0.5em;
 }
 
+#routines-container fieldset label {
+	margin-left: 1em;
+}
+
 #routines-list label {
 	display: block;
 	margin: 0.1em;

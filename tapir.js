@@ -409,9 +409,14 @@ window.TornAPIReader = {
 						}
 					}
 					if (logLine.title === 'Jail' && datumName === 'reason') {
-						if (/^(?:Arrested by|Was caught trying to break out)/.test(datum)) {
-							dataStaging.data.user = parseInt(datum.match(this.regex.userid)[1], 10);// add new key for user
-							datum = datum.replace(this.regex.linkText, '$1');
+						if (/^(?:Arrested by|Was caught trying to break out (?!of jail))/.test(datum)) {
+							//todo: verify with someone's data what stealthed arrest receive looks like, assuming it's possible
+							if (datum === 'Arrested by someone.') {
+								dataStaging.data.user = 0;
+							} else {
+								dataStaging.data.user = parseInt(datum.match(this.regex.userid)[1], 10);// add new key for user
+								datum = datum.replace(this.regex.linkText, '$1');
+							}
 						}
 						//Remove trailing period inconsistency
 						if (datum[datum.length - 1] === '.') {
