@@ -109,8 +109,8 @@ function setAttributes(el, attrs) {
 	*ptwo (optional): second parameter to pass to the given function.
 	*pthree (optional): third parameter to pass to the given function.
 */
-function TAPIR(func, pone, ptwo, pthree) {
-	window.TornAPIReader.ui[func].call(window.TornAPIReader, pone, ptwo, pthree);
+function TAPIR(func, pone, ptwo, pthree, pfour) {
+	window.TornAPIReader.ui[func].call(window.TornAPIReader, pone, ptwo, pthree, pfour);
 }
 
 /* The main program object, contains all logic and data. */
@@ -814,13 +814,38 @@ window.TornAPIReader = {
 			this.runtime.requests, 'requests taking',
 			(runTime < 60 ? runTime : runTime / 60).toFixed(2), (runTime < 60 ? 'seconds.' : 'minutes.')
 		]);
+		this.ui.putlog('Routines started.');
 		this.config.modules.forEach(function(modus) {
 			if (typeof this.routines[modus].finish === 'function') {
-				this.ui.putlog('*' + modus + ':', 'info');
+				var divID = 'routines-' + modus;
 				try {
-					this.routines[modus].finish(function(msg, swtch) { return TAPIR('putlog', msg, 'routine', swtch); });
+					document.getElementById('routines-output').appendChild(
+						setAttributes(document.createElement('h4'), {
+							innerHTML: modus,
+						})
+					).parentNode.appendChild(
+						setAttributes(document.createElement('button'), {
+							'class': 'toggle',
+							type: 'button',
+							onclick: "TAPIR('toggle', '" + divID + "', this)",
+							innerHTML: 'Show results',
+						})
+					).parentNode.appendChild(
+						setAttributes(document.createElement('div'), {
+							id: divID,
+							'class': 'collapsible collapsed',
+							innerHTML: 'Program running...'
+						})
+					);
+					this.routines[modus].buffer = '';
+					this.routines[modus].finish(function(msg, swtch) { return TAPIR('putlog', msg, 'routine', swtch, modus); });
+					document.getElementById(divID).innerHTML = this.routines[modus].buffer;
+					this.ui.putlog('*' + modus + ': completed.', 'info');
 				} catch (err) {
-					this.ui.putlog(['Error finishing routine `' + modus + '` -', err], 'warning');
+					document.getElementById(divID).innerHTML = 'An error occurred.';
+					this.ui.putlog(['*' + modus + ': error -', err], 'info');
+				} finally {
+					delete this.routines[modus].buffer;
 				}
 			}
 		}, this);
@@ -1074,16 +1099,23 @@ window.TornAPIReader = {
 			*onoff (optional): if true and `msg` is:
 				an array - toString will be called instead of joining it with spaces.
 				an object - it will be stringified without spaces instead of using tabs.
+			*routine (optional): if type is routine, this must be the name of the routine.
 		*/
-		putlog: function(msg, type, onoff) {
-			var out = document.getElementById('logging').value ? '\n' : '';
+		putlog: function(msg, type, onoff, routine) {
+			var out = document.getElementById('logging').value ? '\n' : '', routineOut;
 			if (type === 'error') {
 				out += 'ERROR: ';
 				window.TornAPIReader.runtime.isRunning = false;
 			} else if (type === 'warning') {
 				out += 'Warning: ';
 			} else if (type === 'routine') {
-				out += '    ';
+				//Note: `this` is only set this way for routine type
+				if (routine) {
+					routineOut = this.routines[routine].buffer;
+					out = routineOut ? '\n' : '';
+				} else {
+					out += '    ';
+				}
 			} else if (type && type !== 'info') {
 				out += '[Invalid Log Type]: ';
 			}
@@ -1102,14 +1134,18 @@ window.TornAPIReader = {
 							delete msg.id;
 						}
 					}
-					out += JSON.stringify(msg, null, onoff ? null : '\t').replace(/\n/g, '\n    ');
+					out += JSON.stringify(msg, null, onoff ? null : '\t').replace(/\n/g, routineOut ? '\n' : '\n    ');
 				} else {
 					out += msg.toString();
 				}
 			} else {
 				out += msg;
 			}
-			document.getElementById('logging').value += out;
+			if (routineOut !== undefined) {
+				this.routines[routine].buffer += out;
+			} else {
+				document.getElementById('logging').value += out;
+			}
 		},
 		/* Toggles the collapsed state of the given element.
 			*id: the id attribute of a collapsible element.
@@ -1159,7 +1195,7 @@ window.TornAPIReader = {
 		},
 	},
 	/* This holds all the modules for tracking different data points in the log.
-		The key should be a short identifier and using only lowercase letters is recommended. Please keep them alphabetized.
+		The key should be a short, unique identifier and using only lowercase letters is recommended. Please keep them alphabetized.
 		Each routine:
 			MUST contain a brief string keyed `description` summarizing what the routine does, double quoted.
 			MAY contain a function keyed `processor`, which will be passed each log line and its hash.
@@ -1346,7 +1382,7 @@ window.TornAPIReader = {
 			},
 		},
 		gym: {
-			description: "Gets stats on the player's time in the gym.",
+			description: "Gets stats on the player's training in the gym.",
 			require: ['torn.gyms'],
 			data: {},
 			init: function(ids) {

@@ -25,10 +25,35 @@
 	</p>
 	<p>Your API key will not be stored except in temporary browser memory only while the program is running. It will not be transmitted except to the Torn API, over a secure connection.</p>
 	<p>Disclaimer: this tool is in beta. Customized log formats are subject to change. You accept responsibility for any damages incurred while using this tool.</p>
-	<p>Last updated: 2022-07-10 - WIP.</p>
+	<p>Last updated: 2022-07-25 - WIP.</p>
 	<p>Don't play Torn? <a href="https://www.torn.com/2618206">Check it out here</a>.</p>
 	<hr />
 	<h2>Log Information Parser (TAPIR LIP)</h2>
+	<h3>Instructions</h3>
+	<ol>
+		<li>Enter an API key. To read your log it must be Full Access. Your browser may allow you to save it as a password for quick use on this page.</li>
+		<li>Set options. Most selections are not required. On your first full run, I recommend storing logs and leaving other settings alone, but you can also do a limited run to try it out.</li>
+		<li>Start the program.
+			<ul>
+				<li>For a first run:
+					<ol>
+						<li>Enable the option to store logs, then click "Run from Torn API". It may take a very long time to run depending on how long and how frequently you've been playing.</li>
+						<li>When it is done, the Torn Logs field will populate. Click "Copy to Clipboard", open up Notepad or equivalent, paste, and save somewhere convenient.</li>
+					</ol>
+				</li>
+				<li>For subsequent runs:
+					<ol>
+						<li>Click the file selection button next to "Choose saved log file" and select the log file you previously saved.</li>
+						<li>Click the Submit button to load the log data into the program.</li>
+						<li>Choose routines to run by clicking the "Show list of routines" button (this is optional).</li>
+						<li>Click "Run From Stored Data".</li>
+					</ol>
+				</li>
+				<li>Note: you can also run from stored data after doing a full run without needing a file, if you chose to save the logs.</li>
+			</ul>
+		</li>
+		<li>If you refresh the page, you will need to follow these steps again. Your browser may save your selections for you, but the file will always need to be submited again.</li>
+	</ol>
 	<div id="input">
 		<form>
 			<h3>Required fields</h3>
@@ -83,6 +108,7 @@
 				<input id="log-file" type="file" accept=".txt,.json" />
 			</label>
 			<button type="button" onclick="TAPIR('readFile');">Submit</button>
+			<span>(File will not be uploaded to any server, only read on your computer.)</span>
 			<br />
 			<label>
 				<input id="request-rate" type="number" min="0" max="1.66" step="0.05" value="1" />
@@ -141,6 +167,7 @@
 	</div>
 	<hr />
 	<div id="output">
+		<h3>Logs</h3>
 		<div>
 			<label for="logging">Program Logs:</label>
 			<button type="button" onclick="TAPIR('clearLog');">Clear Log</button>
@@ -154,5 +181,10 @@
 			<textarea id="log-download" rows="30" readonly="readonly" spellcheck="false" autocomplete="off" data-spaced="false"></textarea>
 		</div>
 	</div>
+	<h3>Routines</h3>
+	<div id="routines-output"></div>
+	<hr />
+	<h2>Known issues</h2>
+	
 </body>
 </html>

@@ -1,3 +1,4 @@
+/* All site styles. Sorted by elements, then classes, then IDs, each by importance or order on page. */
 
 label {
 	display: inline-block;
@@ -93,11 +94,11 @@ textarea[readonly] {
 	width: 45%;
 }
 
-#output > div:first-child {
+#output > div:first-of-type {
 	padding-right: 4%;
 }
 
-#output > div:last-child {
+#output > div:last-of-type {
 	padding-left: 4%;
 }
 
@@ -114,4 +115,12 @@ textarea[readonly] {
 
 #output label {
 	font-weight: bold;
+}
+
+#routines-output {
+	white-space: pre-wrap;
+}
+
+#routines-output > div {
+	margin-top: 1em;
 }
