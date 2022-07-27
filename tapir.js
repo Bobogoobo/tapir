@@ -939,6 +939,21 @@ window.TornAPIReader = {
 		/* Called when the page is loaded to modify the page as needed for any dynamic information. */
 		load: function() {
 			var self = window.TornAPIReader;
+			//Retrieve stored API key, listen for storage to show delete button
+			var storedKey;
+			try {
+				storedKey = self.ui.storage(null, 'get', 'api-key', 'api-key');
+				if (!storedKey) {
+					document.getElementById('api-key-delete').style.display = 'none';
+				}
+				window.addEventListener('storage', function(evt) {
+					if (evt.key === 'api-key' && evt.newValue) {
+						document.getElementById('api-key-delete').style.display = '';
+					}
+				});
+			} catch (err) {
+				console.log('Failed to initialize stored API key:', err.toString());
+			}
 			//Insert interactive list of available routines
 			var routinesList = document.getElementById('routines-list');
 			try {
@@ -997,7 +1012,7 @@ window.TornAPIReader = {
 					}
 				});
 			} catch (err) {
-				routinesList.textContent = 'There was an error listing routines: ' + err.toString();
+				routinesList.textContent = 'There was an error listing routines: ' + err;
 			}
 		},
 		/* Begins execution of the program given user input from forms on the page, which is formatted here.
@@ -1161,6 +1176,21 @@ window.TornAPIReader = {
 			var btnText = ['Hide', 'Show'];
 			btn.textContent = btn.textContent.replace(btnText[+!isCollapsed], btnText[+isCollapsed]);
 		},
+		/* Adds an indicator of the result of a user action.
+			*el: the element to which to append the indicator.
+			*success: boolean indicating whether the action was successful.
+			*successMsg: message to display if the action succeeded.
+			*failureMsg (optional): message to display if the action failed. If omitted, successMsg will be used (i.e. appropriate message was set beforehand).
+		*/
+		showFeedback: function(el, success, successMsg, failureMsg) {
+			el.appendChild(
+				setAttributes(document.createElement('span'), {
+					'class': 'icon ' + (success ? 'valid' : 'error'),
+					innerHTML: success ? '&check;' : '&cross;',
+					title: success ? successMsg || 'success' : failureMsg || successMsg || 'failure',
+				})
+			);
+		},
 		/* Copies the content of the log download panel to the clipboard.
 			*btn: the button that was clicked (pass `this`).
 		*/
@@ -1175,15 +1205,57 @@ window.TornAPIReader = {
 				navigator.clipboard.writeText(document.getElementById('log-download').value);
 				success = true;
 			} catch (err) {
-				console.log(err);
+				console.log('Clipboard write failed:', err.toString());
 			}
-			btn.appendChild(
-				setAttributes(document.createElement('span'), {
-					'class': 'icon ' + (success ? 'valid' : 'error'),
-					innerHTML: success ? '&check;' : '&cross;',
-					title: success ? 'Copied to clipboard!' : 'Sorry, your browser does not support current clipboard methods.',
-				})
-			);
+			this.ui.showFeedback(btn, success, 'Copied to clipboard!', 'Sorry, your browser may not support current clipboard methods.');
+		},
+		/* Accesses browser storage with given parameters.
+			*btn: if applicable, the button that was clicked (pass `this`).
+			*mode: "set", "get", or "remove".
+				If "get", the value is returned from the function.
+			*key: the key for the stored value.
+			*valueId (optional): the ID of a page element. If setting a value, the value is retrieved from here. If getting a value, the value will be inserted here.
+			*useSession: true if using session storage instead of persistent storage.
+		*/
+		storage: function(btn, mode, key, valueId, useSession) {
+			var storage = useSession ? sessionStorage : localStorage;
+			var success = true;
+			var message = 'Success!';
+			var value;
+			if (valueId) {
+				value = document.getElementById(valueId).value;
+			}			
+			if (mode === 'set') {
+				try {
+					if (!value) {
+						throw new Error('no value entered');
+					}
+					storage.setItem(key, value);
+					//note: StorageEvent constructor has fairly late support, not supported in IE
+					window.dispatchEvent(new StorageEvent('storage', {
+						key: key,
+						newValue: value,
+					}));
+				} catch (err) {
+					success = false;
+					message = 'Failed: ' + err;
+				}
+			} else if (mode === 'get') {
+				if (valueId) {
+					document.getElementById(valueId).value = storage.getItem(key) || '';
+					if (btn) {
+						this.ui.showFeedback(btn, success, message);
+					}
+				}
+				return storage.getItem(key);
+			} else if (mode === 'remove') {
+				storage.removeItem(key);
+			}
+			if (btn) {
+				this.ui.showFeedback(btn, success, message);
+			} else if (!success) {
+				console.log('Storage failure:', message);
+			}
 		},
 		/* Clears the program logging panel. */
 		clearLog: function() {

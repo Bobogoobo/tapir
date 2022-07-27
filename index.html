@@ -24,8 +24,12 @@
 		The program's repository is <a href="https://github.com/Bobogoobo/tapir">here</a> - please see the readme for guidelines.
 	</p>
 	<p>Your API key will not be stored except in temporary browser memory only while the program is running. It will not be transmitted except to the Torn API, over a secure connection.</p>
-	<p>Disclaimer: this tool is in beta. Customized log formats are subject to change. You accept responsibility for any damages incurred while using this tool.</p>
-	<p>Last updated: 2022-07-25 - WIP.</p>
+	<p>
+		Disclaimer: this tool is in beta. Customized log formats are subject to change. You accept responsibility for any damages incurred while using this tool.
+		<br />
+		Logs may not be complete or totally accurate due to not always being tracked by the game or bugs that were not fixed retroactively.
+	</p>
+	<p>Last updated: 2022-07-27 - WIP.</p>
 	<p>Don't play Torn? <a href="https://www.torn.com/2618206">Check it out here</a>.</p>
 	<hr />
 	<h2>Log Information Parser (TAPIR LIP)</h2>
@@ -52,7 +56,7 @@
 				<li>Note: you can also run from stored data after doing a full run without needing a file, if you chose to save the logs.</li>
 			</ul>
 		</li>
-		<li>If you refresh the page, you will need to follow these steps again. Your browser may save your selections for you, but the file will always need to be submited again.</li>
+		<li>If you refresh the page, you will need to follow these steps again. Your browser may save your selections for you, but the file will always need to be submitted again.</li>
 	</ol>
 	<div id="input">
 		<form>
@@ -62,6 +66,8 @@
 				<input id="api-key" type="password" minlength="16" maxlength="16" pattern="\w{16}" required="required" autocomplete="current-password" spellcheck="false" />
 				(Manage your API keys in Torn <a href="https://www.torn.com/preferences.php#tab=api">here</a>.)
 			</label>
+			<button type="button" class="smallbtn notouchie" onclick="TAPIR('storage', this, 'set', 'api-key', 'api-key');">Store in browser</button>
+			<button id="api-key-delete" type="button" class="smallbtn" onclick="TAPIR('storage', this, 'remove', 'api-key');">Delete stored key</button>
 			<br />
 			<label>
 				<input id="store-logs" type="checkbox" />
@@ -73,7 +79,7 @@
 					Select routines to run, comma-separated, or enter "ALL" without quotes, or leave blank for none:
 					<input id="routines" type="text" size="50" />
 				</label>
-				<button class="toggle" type="button" onclick="TAPIR('toggle', 'routines-collapsible', this)">Show list of routines</button>
+				<button type="button" class="toggle" onclick="TAPIR('toggle', 'routines-collapsible', this);">Show list of routines</button>
 				<div id="routines-collapsible" class="collapsible collapsed">
 					<fieldset>
 						Select:
@@ -185,6 +191,21 @@
 	<div id="routines-output"></div>
 	<hr />
 	<h2>Known issues</h2>
-	
+	<p>When reporting a bug, please include any errors in the browser console (F12) and how to reproduce it.</p>
+	<ul>
+		<li>Output of routines should have some nice formatting and they should be easier to navigate.</li>
+		<li>Mobile support and keyboard interfacing should be added.</li>
+		<li>Progress indicators do not take limits into account. Limits are not always followed correctly. Limiting to 0 logs does not terminate properly.</li>
+		<li>Analyze Log fails with console error if run without first doing something else to call the API.</li>
+		<li>API error codes are not specifically checked and may result in program errors.</li>
+		<li>Changes to log file format are not tracked - versioning will be put in place soon. Also, log file should be easier to update.</li>
+		<li>Some API inconsistencies have not yet been accounted for and not all issues have been found. Additional non-API data is still to be added.</li>
+		<li>Program start/end time should be tracked in ms.</li>
+		<li>Racing routine does not work without license acquisition being in the read logs.</li>
+		<li>Many more ideas for routines are already noted, but feel free to suggest specific ideas.</li>
+	</ul>
+	<br />
+	<p>Thanks for visiting!</p>
+	<a href="#top">Back to top</a>
 </body>
 </html>

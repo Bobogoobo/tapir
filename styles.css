@@ -18,7 +18,7 @@ button {
 	padding: 1em;
 }
 
-button + button {
+button + button, button.notouchie {
 	margin-left: 3em;
 }
 
@@ -43,7 +43,7 @@ textarea[readonly] {
 	font-weight: bold;
 }
 
-.toggle {
+.toggle, .smallbtn {
 	padding: 0.25em 1em;
 }
 
