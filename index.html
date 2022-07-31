@@ -19,17 +19,17 @@
 	<p>
 		For any suggestions, questions, or issues, please<!-- use the <a href="https://github.com/Bobogoobo/tapir/issues">issue tracker</a> or--> mail me in game (not chat) or message me on Discord (I'm verified in the Torn server). No item is too insignificant.
 		<br />
-		If you do something cool using this, feel free to send me a link! More interest in the project means I can spend more time improving it.
+		If you do something cool using this, feel free to send me a link! (Credit would be appreciated.) More interest in the project means I can spend more time improving it.
 		<br />
 		The program's repository is <a href="https://github.com/Bobogoobo/tapir">here</a> - please see the readme for guidelines.
 	</p>
-	<p>Your API key will not be stored except in temporary browser memory only while the program is running. It will not be transmitted except to the Torn API, over a secure connection.</p>
+	<p>Your API key will not be stored except in temporary browser memory only while the program is running, unless you choose otherwise. It will not be transmitted except to the Torn API, over a secure connection.</p>
 	<p>
 		Disclaimer: this tool is in beta. Customized log formats are subject to change. You accept responsibility for any damages incurred while using this tool.
 		<br />
 		Logs may not be complete or totally accurate due to not always being tracked by the game or bugs that were not fixed retroactively.
 	</p>
-	<p>Last updated: 2022-07-27 - WIP.</p>
+	<p>Last updated: 2022-07-31 - WIP.</p>
 	<p>Don't play Torn? <a href="https://www.torn.com/2618206">Check it out here</a>.</p>
 	<hr />
 	<h2>Log Information Parser (TAPIR LIP)</h2>
@@ -54,6 +54,7 @@
 					</ol>
 				</li>
 				<li>Note: you can also run from stored data after doing a full run without needing a file, if you chose to save the logs.</li>
+				<li>Any errors or potential issues the program encounters will be logged in the "Program Logs" area.</li>
 			</ul>
 		</li>
 		<li>If you refresh the page, you will need to follow these steps again. Your browser may save your selections for you, but the file will always need to be submitted again.</li>
@@ -101,6 +102,7 @@
 					Routines marked WIP may be broken or do nothing. They will not be included if running "ALL".
 				</div>
 			</div>
+			<span class="notouchie">(<a href="#routines-output">Jump to results</a>)</span>
 			<br />
 			<label>
 				<input id="progress-check" type="number" min="-1" max="100" value="10" />
@@ -113,7 +115,7 @@
 				Choose saved log file:
 				<input id="log-file" type="file" accept=".txt,.json" />
 			</label>
-			<button type="button" onclick="TAPIR('readFile');">Submit</button>
+			<button type="button" onclick="TAPIR('readFile', this);">Submit</button>
 			<span>(File will not be uploaded to any server, only read on your computer.)</span>
 			<br />
 			<label>
@@ -190,19 +192,34 @@
 	<h3>Routines</h3>
 	<div id="routines-output"></div>
 	<hr />
-	<h2>Known issues</h2>
+	<h2>Known Issues</h2>
 	<p>When reporting a bug, please include any errors in the browser console (F12) and how to reproduce it.</p>
 	<ul>
-		<li>Output of routines should have some nice formatting and they should be easier to navigate.</li>
+		<li>Output of routines should have some nice formatting and they should be easier to navigate. Page needs to be more visually appealing in general.</li>
 		<li>Mobile support and keyboard interfacing should be added.</li>
 		<li>Progress indicators do not take limits into account. Limits are not always followed correctly. Limiting to 0 logs does not terminate properly.</li>
 		<li>Analyze Log fails with console error if run without first doing something else to call the API.</li>
 		<li>API error codes are not specifically checked and may result in program errors.</li>
-		<li>Changes to log file format are not tracked - versioning will be put in place soon. Also, log file should be easier to update.</li>
+		<li>Re-running without refreshing the page may not always work as expected.</li>
+		<li>Log file should be easier to update.</li>
 		<li>Some API inconsistencies have not yet been accounted for and not all issues have been found. Additional non-API data is still to be added.</li>
 		<li>Program start/end time should be tracked in ms.</li>
 		<li>Racing routine does not work without license acquisition being in the read logs.</li>
 		<li>Many more ideas for routines are already noted, but feel free to suggest specific ideas.</li>
+	</ul>
+	<hr />
+	<h2>Log Versions</h2>
+	<p>
+		If the version in your log file does not match the most recent version (listed first), data may not be read properly by the program.
+		<br />
+		To update to a more recent version, you will need to adjust the data manually. This may be automated in the future.
+	</p>
+	<ul>
+		<li>v0.1 - (date TBD)
+			<ul>
+				<li>Initial public test release. Many changes to API data to make it more concise, consistent, and program readable.</li>
+			</ul>
+		</li>
 	</ul>
 	<br />
 	<p>Thanks for visiting!</p>

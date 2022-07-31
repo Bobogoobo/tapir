@@ -15,6 +15,11 @@
 
 'use strict';
 
+/* Returns current log format version. Placed here to try to remember to update it. */
+function getLogVersion() {
+	return 'v0.1';
+}
+
 /* Check whether the given object is empty, if it is an object. Non-plain objects are not treated differently.
 	*obj: the object to check.
 */
@@ -148,6 +153,7 @@ window.TornAPIReader = {
 			name: '',// user's Torn username
 			signup: '',// user's date of registration on Torn as a unix timestamp
 			logs: this.data.logs || {},// user's logs are stored here if requested
+			logVersion: this.data.logVersion || null,// log format version of user-submitted logs
 			torn: {
 				logCategories: {},// the list of log categories (id -> name) from the Torn API
 				logCatByName: {},// the above, inverted (category name -> id)
@@ -952,7 +958,7 @@ window.TornAPIReader = {
 					}
 				});
 			} catch (err) {
-				console.log('Failed to initialize stored API key:', err.toString());
+				this.ui.putlog('Failed to initialize stored API key: ' + err, 'info');
 			}
 			//Insert interactive list of available routines
 			var routinesList = document.getElementById('routines-list');
@@ -1065,34 +1071,55 @@ window.TornAPIReader = {
 			}
 			limits = { count: limitCount, interval: limitInterval, date: limitDate };
 
+			document.getElementById('routines-output').innerHTML = '';
 			this.start(key, routines, useStored, limits, save, rate, progress);
 		},
-		/* Called by a file upload form to parse and store a previously downloaded log file. */
-		readFile: function() {
+		/* Called by a file upload form to parse and store a previously downloaded log file.
+			*btn: the button that was clicked (pass `this`).
+		*/
+		readFile: function(btn) {
 			var self = this;
 			var file = document.getElementById('log-file').files[0];
-			if (!file) {
-				this.ui.putlog('Please select a file.', 'error');
-				return;
-			}
 			var reader = new FileReader();
 			var data;
+			var success = true;
+			var message = 'Logs loaded!';
 			reader.onload = function() {
 				try {
+					if (!file) {
+						throw new Error('No file selected.');
+					}
 					data = JSON.parse(reader.result);
+					if (!data.log || isEmptyObject(data.log)) {
+						throw new Error('No logs object found in file.');
+					}
+					self.data.logs = data.log;
+					self.data.logVersion = data.tapir_format_ver;
+					if (self.data.logVersion !== getLogVersion()) {
+						success = null;
+						message = 'File formatting version is ' +
+							(self.data.logVersion ? 'outdated' : 'missing') +
+							'; program may not run properly. See "Log Versions" for info.';
+					}
+					self.ui.putlog(['Stored data for', Object.keys(self.data.logs).length, 'logs.']);
 				} catch (err) {
-					self.ui.putlog('Error parsing file contents: ' + err, 'error');
-					return;
+					success = false;
+					if (err.name === 'Error') {
+						message = err.message;
+					} else {
+						message = 'File could not be read due to improper formatting.';
+						self.ui.putlog('Error parsing file contents: ' + err, 'error');
+					}
 				}
-				self.data.logs = data;
-				self.ui.putlog(['Stored data for', Object.keys(data).length, 'logs.']);
+				self.ui.showFeedback(btn, success, message);
 			};
 			reader.readAsText(file);
 			reader.onerror = function() {
 				self.ui.putlog('Error reading file: ' + reader.error, 'error');
+				self.ui.showFeedback(btn, false, 'Error reading file.');
 			};
 		},
-		/* Prints the logs retrieved from the API to an element on the page.
+		/* Prints the logs retrieved from the API and any needed metadata to an element on the page.
 			*spaced (optional): if true, the dump will be more human-readable; otherwise, it will be minified.
 				Must be specified when called from the program and unspecified when called from the interface.
 		*/
@@ -1100,12 +1127,16 @@ window.TornAPIReader = {
 			if (isEmptyObject(this.data.logs || {})) {
 				return;
 			}
+			var downloadData = {
+				tapir_format_ver: getLogVersion(),
+				log: this.data.logs,
+			};
 			var ta = document.getElementById('log-download');
 			if (spaced === undefined) {
 				spaced = !(ta.dataset.spaced === 'true');
 				ta.dataset.spaced = spaced;
 			}
-			ta.value = JSON.stringify(this.data.logs, null, (spaced ? '\t' : null));
+			ta.value = JSON.stringify(downloadData, null, (spaced ? '\t' : null));
 		},
 		/* Outputs a message to the event log on the page. Note: a wrapper function is passed to `finish` in routines; documentation there needs to be updated for changes.
 			*msg: the message to display, or something to be converted to a message.
@@ -1178,16 +1209,20 @@ window.TornAPIReader = {
 		},
 		/* Adds an indicator of the result of a user action.
 			*el: the element to which to append the indicator.
-			*success: boolean indicating whether the action was successful.
+			*success: an indication of whether the action was successful - boolean, or `null` for a warning state.
 			*successMsg: message to display if the action succeeded.
 			*failureMsg (optional): message to display if the action failed. If omitted, successMsg will be used (i.e. appropriate message was set beforehand).
 		*/
 		showFeedback: function(el, success, successMsg, failureMsg) {
+			var icon = el.getElementsByClassName('icon')[0];
+			if (icon) {
+				icon.remove();
+			}
 			el.appendChild(
 				setAttributes(document.createElement('span'), {
-					'class': 'icon ' + (success ? 'valid' : 'error'),
-					innerHTML: success ? '&check;' : '&cross;',
-					title: success ? successMsg || 'success' : failureMsg || successMsg || 'failure',
+					'class': 'icon ' + (success === null ? 'warning' : success ? 'valid' : 'error'),
+					innerHTML: success === null ? '&sext;' : success ? '&check;' : '&cross;',
+					title: success ? successMsg || 'success' : failureMsg || successMsg || (success === null ? 'warning' : 'failure'),
 				})
 			);
 		},
@@ -1195,40 +1230,44 @@ window.TornAPIReader = {
 			*btn: the button that was clicked (pass `this`).
 		*/
 		copyLogs: function(btn) {
-			var success = false;
-			var icon = btn.getElementsByClassName('icon')[0];
-			if (icon) {
-				icon.remove();
-			}
-			//todo: writeText returns a promise
+			var success = true;
+			var message = 'Copied to clipboard!';
+			var logs = document.getElementById('log-download').value;
+			//todo: writeText returns a Promise
 			try {
-				navigator.clipboard.writeText(document.getElementById('log-download').value);
-				success = true;
+				if (!logs) {
+					throw new Error('No logs to copy.');
+				}
+				navigator.clipboard.writeText(logs);
 			} catch (err) {
-				console.log('Clipboard write failed:', err.toString());
+				success = false;
+				if (err.name === 'Error') {
+					message = err.message;
+				} else {
+					message = 'Sorry, your browser may not support current clipboard methods.';
+					this.ui.putlog('Clipboard write failed: ' + err, 'info');
+				}
 			}
-			this.ui.showFeedback(btn, success, 'Copied to clipboard!', 'Sorry, your browser may not support current clipboard methods.');
+			this.ui.showFeedback(btn, success, message);
 		},
 		/* Accesses browser storage with given parameters.
 			*btn: if applicable, the button that was clicked (pass `this`).
 			*mode: "set", "get", or "remove".
 				If "get", the value is returned from the function.
 			*key: the key for the stored value.
-			*valueId (optional): the ID of a page element. If setting a value, the value is retrieved from here. If getting a value, the value will be inserted here.
-			*useSession: true if using session storage instead of persistent storage.
+			*valueId (optional): the ID of a page element. If setting a value, the value is retrieved from here (required). If getting a value, the value will be inserted here.
+			*useSession (optional): true if using session storage instead of persistent storage.
 		*/
 		storage: function(btn, mode, key, valueId, useSession) {
 			var storage = useSession ? sessionStorage : localStorage;
 			var success = true;
 			var message = 'Success!';
-			var value;
-			if (valueId) {
-				value = document.getElementById(valueId).value;
-			}			
+			var value;		
 			if (mode === 'set') {
 				try {
+					value = document.getElementById(valueId).value;
 					if (!value) {
-						throw new Error('no value entered');
+						throw new Error('No value entered.');
 					}
 					storage.setItem(key, value);
 					//note: StorageEvent constructor has fairly late support, not supported in IE
@@ -1238,23 +1277,26 @@ window.TornAPIReader = {
 					}));
 				} catch (err) {
 					success = false;
-					message = 'Failed: ' + err;
-				}
-			} else if (mode === 'get') {
-				if (valueId) {
-					document.getElementById(valueId).value = storage.getItem(key) || '';
-					if (btn) {
-						this.ui.showFeedback(btn, success, message);
+					if (err.name === 'Error') {
+						message = err.message;
+					} else {
+						message = 'Browser storage failed. There may be insufficient space allocated.';
+						this.ui.putlog('Browsed storage failed: ' + err);
 					}
 				}
-				return storage.getItem(key);
+			} else if (mode === 'get') {
+				value = storage.getItem(key);
+				if (valueId) {
+					document.getElementById(valueId).value = value || '';
+				}
+				return value;
 			} else if (mode === 'remove') {
 				storage.removeItem(key);
 			}
 			if (btn) {
 				this.ui.showFeedback(btn, success, message);
 			} else if (!success) {
-				console.log('Storage failure:', message);
+				this.ui.putlog('Browser storage failed: ' + message, 'info');
 			}
 		},
 		/* Clears the program logging panel. */

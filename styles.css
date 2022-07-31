@@ -18,7 +18,7 @@ button {
 	padding: 1em;
 }
 
-button + button, button.notouchie {
+button + button, .notouchie {
 	margin-left: 3em;
 }
 
@@ -33,6 +33,10 @@ textarea[readonly] {
 
 .valid {
 	color: green;
+}
+
+.warning {
+	color: orange;
 }
 
 .error {
