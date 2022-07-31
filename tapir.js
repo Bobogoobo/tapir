@@ -393,6 +393,16 @@ window.TornAPIReader = {
 					'title': logLine.log,
 					'data': {},
 				};
+				//todo: temporary? Checking for any meaningful "params"
+				Object.keys(logLine.params || {}).forEach(function(param) {
+					var paramValue = logLine.params[param];
+					if (['color', 'italic', 'changed'].indexOf(param) === -1) {
+						//This param seems to be meaningless
+						if (!(param === 'hideName' && Array.isArray(paramValue) && ['1', '2'].indexOf(paramValue.toString()) !== -1)) {
+							console.log('New param found:', param, paramValue, logLine.category, logLine.title, logLine.timestamp);
+						}
+					}
+				});
 				Object.keys(logLine.data || {}).forEach(function(datumName) {
 					datum = logLine.data[datumName];
 					//Begin specific data items to manipulate
