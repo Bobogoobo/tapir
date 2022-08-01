@@ -3,7 +3,7 @@
 <head>
 	<title>TAPIR - Torn API Reader</title>
 	<meta charset="utf-8" />
-	<meta name="description" content="Torn API Reader for the popular browser game Torn can parse your full activity log, calculate a variety of statistics, and more!" />
+	<meta name="description" content="Torn API Reader (TAPIR) for the popular browser game Torn can parse your full activity log, calculate a variety of statistics, and more!" />
 	<script src="tapir.js" defer="defer"></script>
 	<script src="torn-id.js" defer="defer"></script>
 	<link href="styles.css" rel="stylesheet" />
@@ -17,19 +17,27 @@
 	<h1>Torn API Reader (TAPIR) by Bobogoobo [<a href="https://www.torn.com/profiles.php?XID=2618206">2618206</a>]</h1>
 	<p>Designed primarily to parse and analyze your activity log for interesting statistics, but also capable of any other API stat tracking.</p>
 	<p>
-		For any suggestions, questions, or issues, please<!-- use the <a href="https://github.com/Bobogoobo/tapir/issues">issue tracker</a> or--> mail me in game (not chat) or message me on Discord (I'm verified in the Torn server). No item is too insignificant.
+		For any suggestions, questions, or issues, please
+		<!-- use the <a href="https://github.com/Bobogoobo/tapir/issues">issue tracker</a> or-->
+		<a href="https://www.torn.com/messages.php#/p=compose&XID=2618206">mail me in game</a> (not chat)
+		or message me on Discord (I'm verified in the Torn server).
+		No item is too insignificant, and feedback is appreciated!
 		<br />
 		If you do something cool using this, feel free to send me a link! (Credit would be appreciated.) More interest in the project means I can spend more time improving it.
 		<br />
 		The program's repository is <a href="https://github.com/Bobogoobo/tapir">here</a> - please see the readme for guidelines.
 	</p>
-	<p>Your API key will not be stored except in temporary browser memory only while the program is running, unless you choose otherwise. It will not be transmitted except to the Torn API, over a secure connection.</p>
 	<p>
-		Disclaimer: this tool is in beta. Customized log formats are subject to change. You accept responsibility for any damages incurred while using this tool.
+		Your API key will not be stored except in temporary browser memory only while the program is running, unless you choose otherwise.
+		It will not be transmitted except to the Torn API, over a secure connection.
+	</p>
+	<p>The information exposed by this tool can be very sensitive in terms of Torn gameplay. Always think and look it over before sharing! Never share your API key with players you don't trust!</p>
+	<p>
+		Disclaimer: this tool is in beta. Customized log formats are subject to change. You accept responsibility for any damages incurred as a result of using this tool.
 		<br />
 		Logs may not be complete or totally accurate due to not always being tracked by the game or bugs that were not fixed retroactively.
 	</p>
-	<p>Last updated: 2022-07-31 - WIP.</p>
+	<p>Last updated: 2022-08-01 - WIP.</p>
 	<p>Don't play Torn? <a href="https://www.torn.com/2618206">Check it out here</a>.</p>
 	<hr />
 	<h2>Log Information Parser (TAPIR LIP)</h2>
@@ -41,7 +49,7 @@
 			<ul>
 				<li>For a first run:
 					<ol>
-						<li>Enable the option to store logs, then click "Run from Torn API". It may take a very long time to run depending on how long and how frequently you've been playing.</li>
+						<li>Enable the option to store logs, then click "Run From Torn API". It may take a very long time to run depending on how long and how frequently you've been playing.</li>
 						<li>When it is done, the Torn Logs field will populate. Click "Copy to Clipboard", open up Notepad or equivalent, paste, and save somewhere convenient.</li>
 					</ol>
 				</li>
@@ -53,7 +61,7 @@
 						<li>Click "Run From Stored Data".</li>
 					</ol>
 				</li>
-				<li>Note: you can also run from stored data after doing a full run without needing a file, if you chose to save the logs.</li>
+				<li>Note: you can also run from stored data after doing a full run without needing a file, if you chose to save the logs and haven't refreshed the page.</li>
 				<li>Any errors or potential issues the program encounters will be logged in the "Program Logs" area.</li>
 			</ul>
 		</li>

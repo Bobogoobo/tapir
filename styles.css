@@ -122,6 +122,7 @@ textarea[readonly] {
 }
 
 #routines-output {
+	padding-bottom: 1em;
 	white-space: pre-wrap;
 }
 

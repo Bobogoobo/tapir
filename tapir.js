@@ -16,6 +16,8 @@
 'use strict';
 
 /* Returns current log format version. Placed here to try to remember to update it. */
+//Also remember to update log version history section with specific changes.
+//Also remember to update "last updated" in html.
 function getLogVersion() {
 	return 'v0.1';
 }
@@ -381,6 +383,7 @@ window.TornAPIReader = {
 	/* Handles the request loop for obtaining a full log from the API, processing each line, and storing it if requested.
 		*response: the JSON data obtained by request().
 	*/
+	//Remember to update log version info with any changes!
 	readLogs: function(response) {
 		var logLine, dataStaging, datum, nextTo;
 		if (response.log) {
@@ -399,7 +402,7 @@ window.TornAPIReader = {
 					if (['color', 'italic', 'changed'].indexOf(param) === -1) {
 						//This param seems to be meaningless
 						if (!(param === 'hideName' && Array.isArray(paramValue) && ['1', '2'].indexOf(paramValue.toString()) !== -1)) {
-							console.log('New param found:', param, paramValue, logLine.category, logLine.title, logLine.timestamp);
+							this.ui.putlog(['New param found:', param, paramValue, logLine.category, logLine.title, logLine.timestamp]);
 						}
 					}
 				});
@@ -865,6 +868,7 @@ window.TornAPIReader = {
 				}
 			}
 		}, this);
+		document.getElementById('routines-output').firstChild.remove();
 		this.ui.putlog('Routines completed.');
 		if (!this.config.useStored) {
 			TAPIR('displayLogs', false);
@@ -1081,7 +1085,7 @@ window.TornAPIReader = {
 			}
 			limits = { count: limitCount, interval: limitInterval, date: limitDate };
 
-			document.getElementById('routines-output').innerHTML = '';
+			document.getElementById('routines-output').innerHTML = '<span>Program is running...</span>';
 			this.start(key, routines, useStored, limits, save, rate, progress);
 		},
 		/* Called by a file upload form to parse and store a previously downloaded log file.
@@ -1148,9 +1152,9 @@ window.TornAPIReader = {
 			}
 			ta.value = JSON.stringify(downloadData, null, (spaced ? '\t' : null));
 		},
-		/* Outputs a message to the event log on the page. Note: a wrapper function is passed to `finish` in routines; documentation there needs to be updated for changes.
+		/* Outputs a message to the event log on the page. NOTE: a wrapper function is passed to `finish` in routines; documentation there needs to be updated for changes.
 			*msg: the message to display, or something to be converted to a message.
-				Note: if passing an array, any objects that are elements need JSON.stringify called on them.
+				Note: if passing an array, any elements that are objects need JSON.stringify called on them.
 			*type (optional): the type of message. Can be one of: error (only use if stopping execution), warning, info (default), routine.
 			*onoff (optional): if true and `msg` is:
 				an array - toString will be called instead of joining it with spaces.
@@ -1161,6 +1165,7 @@ window.TornAPIReader = {
 			var out = document.getElementById('logging').value ? '\n' : '', routineOut;
 			if (type === 'error') {
 				out += 'ERROR: ';
+				document.getElementById('routines-output').innerHTML = '';
 				window.TornAPIReader.runtime.isRunning = false;
 			} else if (type === 'warning') {
 				out += 'Warning: ';
@@ -1696,7 +1701,7 @@ window.TornAPIReader = {
 					'Own', miscData.totalOwned,
 					'of', miscData.gameItems,
 					'game items (' + (miscData.totalOwned / miscData.gameItems * 100).toFixed(2) + '%) with',
-					'$' + miscData.totalLiquid.toLocaleString(), 'total liquidity. (Values exclude keeping one of each item.)'
+					'$' + miscData.totalLiquid.toLocaleString(), 'total liquidity. (Values exclude keeping one of each item and anything outside of inventory.)'
 				]);
 				//todo
 				output({ 'Most valuable stacks of extra items': valuableExtra });
