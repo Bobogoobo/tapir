@@ -22,7 +22,7 @@ Code style:
 - Always use `this` for the program object when possible.
 - Lines must fit comfortably on a 1920x1080 display.
 - Spacing and formatting conventions:
--- Inline comments on the same line as code have no preceding space and one space before the text of the comment.
+    - Inline comments on the same line as code have no preceding space and one space before the text of the comment.
 - When in doubt, check existing code.
 
 License:
