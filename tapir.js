@@ -270,7 +270,7 @@ window.TornAPIReader = {
 					self.ui.putlog(['Stopping - an error occurred.', errorText, url.replace(self.regex.key, '')], 'error');
 					return;
 				}
-				self.ui.putlog('There was an issue with the request. Retrying in one minute: ' + url.replace(self.regex.key, ''), 'warning');
+				self.ui.putlog('There was an issue with the request (' + errorText + '). Retrying in one minute: ' + url.replace(self.regex.key, ''), 'warning');
 				self.runtime.pending += 1;// set before end of timer
 				setTimeout(self.request, 60000, url, handler, self, true);
 			} else {
