@@ -95,11 +95,11 @@ window.TornAPIReader.logIDs.torn = {
 	},
 	/* id: name */
 	gymstage: {
-		0: 'Other',
-		1: 'Lightweight',
-		2: 'Middleweight',
-		3: 'Heavyweight',
-		4: 'Specialist',
+		0: "Other",
+		1: "Lightweight",
+		2: "Middleweight",
+		3: "Heavyweight",
+		4: "Specialist",
 	},
 	/* id: name */
 	racetrack: {

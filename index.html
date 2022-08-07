@@ -12,20 +12,20 @@
 	<div class="image-right" style="width:20%;">
 		<img src="images/Tapirus_pinchaque_portrait.jpg" alt="mountain tapir" style="width:100%; max-width:640px;" />
 		<br />
-		<span class="caption"><a href="https://commons.wikimedia.org/wiki/File:Tapirus_pinchaque_portrait.jpg">Source</a> (David Sifry), resized</span>
+		<span class="caption"><a href="https://commons.wikimedia.org/wiki/File:Tapirus_pinchaque_portrait.jpg" target="_blank">Source</a> (David Sifry), resized</span>
 	</div>
-	<h1>Torn API Reader (TAPIR) by Bobogoobo [<a href="https://www.torn.com/profiles.php?XID=2618206">2618206</a>]</h1>
+	<h1>Torn API Reader (TAPIR) by Bobogoobo [<a href="https://www.torn.com/profiles.php?XID=2618206" target="_blank">2618206</a>]</h1>
 	<p>Designed primarily to parse and analyze your activity log for interesting statistics, but also capable of any other API stat tracking.</p>
 	<p>
 		For any suggestions, questions, or issues, please
-		<!-- use the <a href="https://github.com/Bobogoobo/tapir/issues">issue tracker</a> or-->
-		<a href="https://www.torn.com/messages.php#/p=compose&XID=2618206">mail me in game</a> (not chat)
+		<!-- use the <a href="https://github.com/Bobogoobo/tapir/issues" target="_blank">issue tracker</a> or-->
+		<a href="https://www.torn.com/messages.php#/p=compose&XID=2618206" target="_blank">mail me in game</a> (not chat)
 		or message me on Discord (I'm verified in the Torn server).
 		No item is too insignificant, and feedback is appreciated!
 		<br />
 		If you do something cool using this, feel free to send me a link! (Credit would be appreciated.) More interest in the project means I can spend more time improving it.
 		<br />
-		The program's repository is <a href="https://github.com/Bobogoobo/tapir">here</a> - please see the readme for guidelines.
+		The program's repository is <a href="https://github.com/Bobogoobo/tapir" target="_blank">here</a> - please see the readme for guidelines.
 	</p>
 	<p>
 		Your API key will not be stored except in temporary browser memory only while the program is running, unless you choose otherwise.
@@ -33,12 +33,12 @@
 	</p>
 	<p>The information exposed by this tool can be very sensitive in terms of Torn gameplay. Always think and look it over before sharing! Never share your API key with players you don't trust!</p>
 	<p>
-		Disclaimer: this tool is in beta. Customized log formats are subject to change. You accept responsibility for any damages incurred as a result of using this tool.
+		Disclaimer: this tool is in beta and will be updated frequently. Customized log formats are subject to change. You accept responsibility for any damages incurred as a result of using this tool.
 		<br />
 		Logs may not be complete or totally accurate due to not always being tracked by the game or bugs that were not fixed retroactively.
 	</p>
-	<p>Last updated: 2022-08-01 - WIP.</p>
-	<p>Don't play Torn? <a href="https://www.torn.com/2618206">Check it out here</a>.</p>
+	<p>Last updated: 2022-08-07 - tech demo release.</p>
+	<p>Don't play Torn? <a href="https://www.torn.com/2618206" target="_blank">Check it out here</a>.</p>
 	<hr />
 	<h2>Log Information Parser (TAPIR LIP)</h2>
 	<h3>Instructions</h3>
@@ -47,7 +47,7 @@
 		<li>Set options. Most selections are not required. On your first full run, I recommend storing logs and leaving other settings alone, but you can also do a limited run to try it out.</li>
 		<li>Start the program.
 			<ul>
-				<li>For a first run:
+				<li>For your first full run:
 					<ol>
 						<li>Enable the option to store logs, then click "Run From Torn API". It may take a very long time to run depending on how long and how frequently you've been playing.</li>
 						<li>When it is done, the Torn Logs field will populate. Click "Copy to Clipboard", open up Notepad or equivalent, paste, and save somewhere convenient.</li>
@@ -73,7 +73,7 @@
 			<label>
 				Enter your API key:
 				<input id="api-key" type="password" minlength="16" maxlength="16" pattern="\w{16}" required="required" autocomplete="current-password" spellcheck="false" />
-				(Manage your API keys in Torn <a href="https://www.torn.com/preferences.php#tab=api">here</a>.)
+				(Manage your API keys in Torn <a href="https://www.torn.com/preferences.php#tab=api" target="_blank">here</a>.)
 			</label>
 			<button type="button" class="smallbtn notouchie" onclick="TAPIR('storage', this, 'set', 'api-key', 'api-key');">Store in browser</button>
 			<button id="api-key-delete" type="button" class="smallbtn" onclick="TAPIR('storage', this, 'remove', 'api-key');">Delete stored key</button>
@@ -198,10 +198,11 @@
 		</div>
 	</div>
 	<h3>Routines</h3>
-	<div id="routines-output"></div>
+	<div id="routines-output"><span>Program not started yet.</span></div>
 	<hr />
-	<h2>Known Issues</h2>
+	<h2>Known Issues / Planned Features</h2>
 	<p>When reporting a bug, please include any errors in the browser console (F12) and how to reproduce it.</p>
+	<p>Many more ideas for features and routines are already noted, but feel free to suggest specific ideas (requests help prioritize development).</p>
 	<ul>
 		<li>Output of routines should have some nice formatting and they should be easier to navigate. Page needs to be more visually appealing in general.</li>
 		<li>Mobile support and keyboard interfacing should be added.</li>
@@ -213,7 +214,6 @@
 		<li>Some API inconsistencies have not yet been accounted for and not all issues have been found. Additional non-API data is still to be added.</li>
 		<li>Program start/end time should be tracked in ms.</li>
 		<li>Racing routine does not work without license acquisition being in the read logs.</li>
-		<li>Many more ideas for routines are already noted, but feel free to suggest specific ideas.</li>
 	</ul>
 	<hr />
 	<h2>Log Versions</h2>
@@ -223,9 +223,9 @@
 		To update to a more recent version, you will need to adjust the data manually. This may be automated in the future.
 	</p>
 	<ul>
-		<li>v0.1 - (date TBD)
+		<li>v0.1.0 - 2022-08-07
 			<ul>
-				<li>Initial public test release. Many changes to API data to make it more concise, consistent, and program readable.</li>
+				<li>Initial limited test release. Many changes to API data to make it more concise, consistent, and program readable.</li>
 			</ul>
 		</li>
 	</ul>

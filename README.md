@@ -16,13 +16,15 @@ Code standards:
 - In terms of game data, try to keep code adaptable to changes in values or structures.
 
 Code style:
-- Always semicolons and block braces.
-- Always strict equality.
-- Always trailing commas except for inlines that won't change.
-- Always use `this` for the program object when possible.
-- Lines must fit comfortably on a 1920x1080 display.
-- Spacing and formatting conventions:
-    - Inline comments on the same line as code have no preceding space and one space before the text of the comment.
+- Tab indents (except Markdown).
+- Lines must fit comfortably on a 1920x1080 display with sidebar(s).
+- JavaScript:
+    - Always semicolons and block braces.
+    - Always strict equality.
+    - Always trailing commas except for inlines that won't change.
+    - Always use `this` for the program object when possible.
+    - Spacing and formatting conventions:
+        - Inline comments on the same line as code have no preceding space and one space before the text of the comment.
 - When in doubt, check existing code.
 
 License:

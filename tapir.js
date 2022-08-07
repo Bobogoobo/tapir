@@ -7,6 +7,7 @@
 	#########################################
 
 	https://github.com/Bobogoobo/tapir
+	Full readme available in the repository above.
 
 	Please credit me if using any part of this and do not redistribute this file. I'd rather enhance this version than have forks.
 	For any suggestions, questions, or issues, please create an issue on GitHub or mail me in game (not chat) or message me on Discord (I'm verified in the Torn server).
@@ -15,11 +16,11 @@
 
 'use strict';
 
-/* Returns current log format version. Placed here to try to remember to update it. */
 //Also remember to update log version history section with specific changes.
 //Also remember to update "last updated" in html.
+/* Returns current log format version. Placed here to try to remember to update it. */
 function getLogVersion() {
-	return 'v0.1';
+	return 'v0.1.0';
 }
 
 /* Check whether the given object is empty, if it is an object. Non-plain objects are not treated differently.
@@ -769,7 +770,7 @@ window.TornAPIReader = {
 				(this.config.modules.length ? 'Running routines: ' + this.config.modules.join(', ') : 'No routines running') + '.' +
 				(
 					this.config.limitCount >= 0 || this.config.limitInterval >= 0 || this.config.limitDate >= 0 ?
-					(this.config.limitCount >= 0 ? ' Limited to ' + this.config.limitCount + ' log lines.' : '') +
+					(this.config.limitCount >= 0 ? ' Limited to ' + this.config.limitCount + ' log entries.' : '') +
 					(this.config.limitInterval >= 0 ? ' Limited to ' + this.config.limitInterval + ' seconds ago.' : '') +
 					(this.config.limitDate >= 0 ? ' Limited to ' + this.config.limitDate + ' and later.' : '')
 					: ' No limits set.'
@@ -868,8 +869,13 @@ window.TornAPIReader = {
 				}
 			}
 		}, this);
-		document.getElementById('routines-output').firstChild.remove();
-		this.ui.putlog('Routines completed.');
+		if (this.config.modules.length) {
+			document.getElementById('routines-output').firstChild.remove();
+			this.ui.putlog('Routines completed.');
+		} else {
+			document.getElementById('routines-output').firstChild.innerHTML = 'No routines requested.';
+			this.ui.putlog('No routines to run.');
+		}
 		if (!this.config.useStored) {
 			TAPIR('displayLogs', false);
 		}
@@ -1165,7 +1171,7 @@ window.TornAPIReader = {
 			var out = document.getElementById('logging').value ? '\n' : '', routineOut;
 			if (type === 'error') {
 				out += 'ERROR: ';
-				document.getElementById('routines-output').innerHTML = '';
+				document.getElementById('routines-output').innerHTML = '<span>Program encountered a fatal error.</span>';
 				window.TornAPIReader.runtime.isRunning = false;
 			} else if (type === 'warning') {
 				out += 'Warning: ';
@@ -1496,20 +1502,6 @@ window.TornAPIReader = {
 				output(this.data.undone);
 			},
 		},
-		footroulette: {
-			wip: true,
-			description: "Gets stats on the player's Foot Russian Roulette games.",
-			data: {},
-			init: function() {
-				
-			},
-			processor: function(log) {
-				//TODO
-			},
-			finish: function(output) {
-				
-			},
-		},
 		gym: {
 			description: "Gets stats on the player's training in the gym.",
 			require: ['torn.gyms'],
@@ -1609,7 +1601,7 @@ window.TornAPIReader = {
 		*/
 		interactions: {
 			wip: true,
-			description: "Builds a list of other players with whom the player has interacted and how, with some exceptions.",
+			description: "Builds a list of other players with whom the player has interacted, with some exceptions.",
 			data: {},
 			init: function() {
 				
