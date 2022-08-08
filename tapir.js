@@ -43,6 +43,8 @@ function arrayFrom(arrayLike) {
 }
 
 /* Create Or Update Sub-Property State for an object that has a property that is an object that has dynamic keys.
+	Also works with arrays (outer being the array and inner being the index, or obj and outer respectively).
+	Redundant if the outer object is created with all needed properties.
 	*obj: the object to access.
 	*outer: the name of the outer property.
 	*inner: the name of the inner property. Omit this to set the value of the outer property (must be `undefined` if using later parameters).
@@ -1336,7 +1338,7 @@ window.TornAPIReader = {
 			MAY contain a function keyed `processor`, which will be passed each log line and its hash.
 			MAY contain a function keyed `finish` to finalize processing data and/or provide output, which will be passed the output function.
 				The output function takes two parameters: something to display, and an optional behavior switch.
-					If the switch is true, arrays will be joined with commas instead of spaces and objects will be pretty-printed instead of being minified.
+					If the switch is true, arrays will be joined with commas instead of spaces and objects will be minified instead of being pretty-printed.
 					Use four spaces for any additional indentation.
 			MAY also use the following keys for organization purposes: `data` and `functions`.
 			MAY specify additional required API calls in an array keyed `require`, e.g. 'user.travel' or 'property.property'.
@@ -1352,6 +1354,7 @@ window.TornAPIReader = {
 			MAY define the property `wip` (work in progress) - if true, the routine will be excluded when running all routines.
 			MAY NOT access any properties outside of its scope, which will be provided as `this`, and passed parameters.
 			MAY have a docstring for a more verbose description/explanation.
+			MAY throw an error if an unrecoverable exception is encountered.
 		The passed logs:
 			Have already been converted to standard keys, notation, and data types.
 				If using data containing strings that the program maps to IDs or vice versa, you will need to store **only the associations you need** from `init`.
@@ -1576,7 +1579,7 @@ window.TornAPIReader = {
 					data.moneySpent += log.data.cost;
 				} else if (log.title === 'Gym activate') {
 					data.switches.push([log.timestamp, log.data.gym]);
-				} else {// addict
+				} else {// todo: addict
 					
 				}
 			},
@@ -1698,6 +1701,94 @@ window.TornAPIReader = {
 				//todo
 				output({ 'Most valuable stacks of extra items': valuableExtra });
 				output({ 'Cheapest unowned items': cheapUnowned });
+			},
+		},
+		mugging: {
+			wip: true,
+			description: "Gets stats on the player's outgoing and incoming mugs.",
+			data: {},
+			init: function() {
+				this.data = {
+					total: {
+						outCount: 0,
+						outMoney: 0,
+						outAverage: null,
+						outChainMugs: 0,
+						inCount: 0,
+						inMoney: 0,
+						inAverage: null,
+					},
+					outgoing: {},
+					incoming: {},
+				};
+			},
+			processor: function(log) {
+				//todo: have to check how group attacks are formatted and figure out how to show them
+				if (log.title !== 'Attack mug' && log.title !== 'Attack mug receive') {
+					return;
+				}
+				var totalData = this.data.total;
+				var user, mugData, money = log.data.money_mugged;
+				if (log.title === 'Attack mug') {
+					user = log.data.defender;
+					mugData = this.data.outgoing;
+					totalData.outCount += 1;
+					totalData.outMoney += money;
+					if (log.data.chain >= 10) {
+						this.data.total.outChainMugs += 1;
+					}
+				} else if (log.title === 'Attack mug receive') {
+					user = log.data.attacker;
+					mugData = this.data.incoming;
+					totalData.inCount += 1;
+					totalData.inMoney += money;
+				}
+				if (mugData[user]) {
+					mugData[user].count += 1;
+					mugData[user].money += money;
+				} else {
+					mugData[user] = {
+						count: 1,
+						money: money,
+						average: null,
+						lastDate: log.timestamp,
+					};
+				}
+			},
+			finish: function(output) {
+				/* Generalized function to process outgoing and incoming mug data.
+					Takes the user (key), object containing mug data, and array that will be sorted later.
+				*/
+				function finalize(user, dataObj, sortObj) {
+					dataObj.average = Math.round(dataObj.money / dataObj.count);
+					sortObj.push({
+						user: user,
+						avg: dataObj.average,
+					});
+				}
+				var totalData = this.data.total, outData = this.data.outgoing, inData = this.data.incoming;
+				var sortedOut = [], sortedIn = [];
+				totalData.outAverage = Math.round(totalData.outMoney / totalData.outCount);
+				totalData.inAverage = Math.round(totalData.inMoney / totalData.inCount);
+				Object.keys(outData).forEach(function(user) {
+					finalize(user, outData[user], sortedOut);
+				});
+				Object.keys(inData).forEach(function(user) {
+					finalize(user, inData[user], sortedIn);
+				});
+				sortedOut.sort(function(a, b) {
+					return compare(a.avg, b.avg, 'sort', true);
+				});
+				sortedIn.sort(function(a, b) {
+					return compare(a.avg, b.avg, 'sort', true);
+				});
+				//todo (when done, fix ordering and put total last in data)
+				//todo: convert timestamps to strings, format numbers
+				output({
+					'Outgoing mugs by highest average': sortedOut,
+					'Incoming mugs by highest average': sortedIn
+				});
+				output(this.data);
 			},
 		},
 		racing: {
@@ -1862,6 +1953,195 @@ window.TornAPIReader = {
 				delete this.data.raceIDs;
 				delete this.data.lastCrash;
 				//todo; also convert timestamps to dates
+				output(this.data);
+			},
+		},
+		travel: {
+			wip: true,
+			description: "Get stats on the user's traveling.",
+			require: ['torn.items'],
+			data: {},
+			init: function(ids) {
+				this.data = {
+					id: ids.torn.travel,
+					places: {},
+					rehab: {
+						times: 0,
+						extTimes: 0,
+						timesFullAddiction: 0,
+						totalCost: 0,
+						totalAddiction: 0,
+						totalHappy: 0,
+					},
+					banking: {
+						timesDeposit: 0,
+						totalDeposit: 0,
+						timesWithdraw: 0,
+						totalWithdraw: 0,
+						timesInterest: 0,
+						totalInterest: 0,
+					},
+					fortune: {// todo: need example log
+						times: 0,
+						totalCost: 0,
+					},
+					hunting: {
+						times: 0,
+						huntingDay: [0, 0],
+						types: new Array(4),
+						skillGain: 0,
+						totalFees: 0,
+						totalIncome: 0,
+						totalEnergy: 0,
+					},
+					total: {
+						times: 0,// abroad only
+						fees: 0,
+						airtime: 0,
+						idle: 0,// abroad only
+						methods: new Array(5),
+						items: {
+							count: 0,
+							spent: 0,
+							profit: null,
+						},
+					},
+					lastTimestamp: null,
+					lastTimestampReturning: null,// will be boolean
+					lastDestination: null,
+				};
+				Object.keys(this.data.id).forEach(function(dest) {
+					this.data.places[dest] = {
+						name: this.data.id[dest],
+						times: 0,
+						fees: 0,
+						airtime: 0,
+						idle: 0,
+						methods: new Array(5),
+						items: {
+							total: {
+								count: 0,
+								spent: 0,
+								profit: null,
+							},
+						},
+					};
+					if (dest === '1') {
+						delete this.data.places[dest].methods;
+						delete this.data.places[dest].items;
+					}
+				}, this);
+			},
+			processor: function(log) {
+				var HUNTING_ENERGY = 10;// not included in log
+				if (log.category !== 'Travel' && log.title !== 'Item abroad buy') {
+					return;
+				}
+				var placeData, item, travelingHome, idleTime;
+				var rehab, banking, hunting;
+				if (log.title === 'Item abroad buy') {
+					placeData = this.data.places[log.data.area];
+					item = log.data.item;
+					if (!placeData.items[item]) {
+						placeData.items[item] = {
+							count: 0,
+							spent: 0,
+							profit: null,
+						};
+					}
+					placeData.items[item].count += log.data.quantity;
+					placeData.items[item].spent += log.data.total_cost;
+					placeData.items.total.count += log.data.quantity;
+					placeData.items.total.spent += log.data.total_cost;
+					this.data.total.items.count += log.data.quantity;
+					this.data.total.items.spent += log.data.total_cost;
+				} else if (log.title === 'Travel initiate') {
+					travelingHome = log.data.destination === 1;
+					placeData = this.data.places[log.data.destination];
+					placeData.times += 1;
+					this.data.total.airtime += log.data.duration;
+					if (travelingHome) {
+						//When returning to Torn, airtime counts toward abroad location
+						this.data.places[log.data.origin].airtime += log.data.duration;
+					} else {
+						placeData.airtime += log.data.duration;
+						//Only count travel method and frequency once
+						cousps(placeData.methods, log.data.travel_method);
+						cousps(this.data.total.methods, log.data.travel_method);
+						this.data.total.times += 1;
+					}
+					if (this.data.lastTimestamp) {
+						if (this.data.lastTimestampReturning === travelingHome) {// if same truth value
+							//A log is missing, ignore this interval
+							TAPIR('putlog', ['Missing matching travel log:', JSON.stringify(log)], 'warning');
+						} else {
+							//Comparing the currently read log's time to the chronologically succeeding log
+							idleTime = this.data.lastTimestamp - log.timestamp - log.data.duration;
+							placeData.idle += idleTime;
+							if (!travelingHome) {
+								this.data.total.idle += idleTime;
+							}
+						}
+					}
+					this.data.lastTimestamp = log.timestamp;
+					this.data.lastTimestampReturning = travelingHome;
+					//todo: probably only need this when travel type is standard
+					this.data.lastDestination = log.data.destination;
+				} else if (log.title === 'Travel fee') {
+					this.data.places[this.data.lastDestination].fees += log.data.cost;
+					this.data.total.fees += log.data.cost;
+				} else if (log.title === 'Travel business class ticket') {
+					//todo: see what this looks like, probably don't need it since it'll say in travel method
+				} else if (log.title === 'Rehab') {
+					rehab = this.data.rehab;
+					rehab.times += 1;
+					rehab.extTimes += log.data.rehab_times;
+					rehab.totalCost += log.data.cost;
+					rehab.totalAddiction += log.data.addiction;
+					rehab.totalHappy += log.data.happy_increased;
+					if (log.data.addiction === 100) {
+						rehab.timesFullAddiction += 1;
+					}
+				} else if (/^Offshore bank /.test(log.title)) {
+					banking = this.data.banking;
+					if (log.data.deposited) {
+						banking.timesDeposit += 1;
+						banking.totalDeposit += log.data.deposited;
+					} else if (log.data.withdrawn) {
+						//todo: need to verify data key
+						banking.timesWithdraw += 1;
+						banking.totalWithdraw += log.data.withdrawn;
+					} else if (log.data.interest) {
+						banking.timesInterest += 1;
+						banking.totalInterest += log.data.interest;
+					}
+				} else if (log.title === 'Fortune teller') {
+					//todo: need a log example to verify data
+					this.data.fortune.times += 1;
+					this.data.fortune.totalCost += log.data.cost;
+				} else if (log.title === 'Hunting') {
+					hunting = this.data.hunting;
+					this.data.hunting.times += 1;
+					//todo: check if date is within World Tiger Day
+					cousps(hunting.types, log.data.session_type);
+					hunting.skillGain += log.data.hunting_skill_gain;
+					hunting.totalFees += log.data.cost;
+					hunting.totalIncome += log.data.income;
+					hunting.totalEnergy += HUNTING_ENERGY;
+				} else {
+					throw new Error('Unhandled travel log type.');
+				}
+			},
+			finish: function(output) {
+				//todo: more stats
+				//todo: percentage of hunting progress - either get formula or use energy spent
+				//todo: have to fill out profit property for every item in every location as well as totals
+				
+				//note: addiction data item is percentage reduction
+				//hunting day is called World Tiger Day - fill out variable
+				//note idle time is purely travel timestamps + airtime, you could be doing other things in between
+				//  remember it's in seconds
+				//note using current market prices
 				output(this.data);
 			},
 		},

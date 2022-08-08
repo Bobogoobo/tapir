@@ -128,4 +128,19 @@ window.TornAPIReader.logIDs.torn = {
 		23: "Stone Park",
 		24: "Convict",
 	},
+	/* id: name */
+	travel: {
+		1: "Torn",
+		2: "Mexico",
+		3: "Hawaii",
+		4: "South Africa",
+		5: "Japan",
+		6: "China",
+		7: "Argentina",
+		8: "Switzerland",
+		9: "Canada",
+		10: "United Kingdom",
+		11: "United Arab Emirates",
+		12: "Cayman Islands",
+	},
 };
